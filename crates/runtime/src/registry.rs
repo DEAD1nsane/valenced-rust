@@ -9,7 +9,8 @@
 use std::collections::HashMap;
 
 use crate::plugin::{Lifecycle, Plugin, PluginContext, RuntimeError, UnscopedApi};
-use valenced_core::manifest::{PluginManifest, require_valid_plugin_id, reserved_dependency_ids};
+use valenced_core::manifest::{PluginManifest, parse_external_manifest, require_valid_plugin_id, reserved_dependency_ids};
+use valenced_core::paths::PluginPaths;
 
 /// Registry entry: a live plugin + its manifest.
 pub struct Entry {
@@ -157,6 +158,66 @@ impl Registry {
                 }
             }
         }
+    }
+
+    /// Load every installed plugin under `paths.dist()` into the registry.
+    /// JS/WASM plugins are registered by manifest (logic runs in their
+    /// hosts); native Rust `Plugin`s are registered by the host binary
+    /// via [`Registry::register_native`]. Returns `(loaded, skipped)` —
+    /// skipped entries failed validation with a reason.
+    pub fn load_from_dist(&mut self, paths: &PluginPaths) -> (Vec<String>, Vec<(String, String)>) {
+        let dist = paths.dist();
+        let mut loaded = Vec::new();
+        let mut skipped = Vec::new();
+        let entries = match std::fs::read_dir(&dist) {
+            Ok(e) => e,
+            Err(_) => return (loaded, skipped),
+        };
+        for entry in entries.flatten() {
+            let dir = entry.path();
+            if !dir.is_dir() {
+                continue;
+            }
+            let dir_name = dir.file_name().and_then(|s| s.to_str()).unwrap_or("?").to_string();
+            let manifest_path = dir.join(valenced_core::manifest::MANIFEST_FILE);
+            let json = match std::fs::read_to_string(&manifest_path) {
+                Ok(j) => j,
+                Err(e) => {
+                    skipped.push((dir_name.clone(), format!("read manifest: {e}")));
+                    continue;
+                }
+            };
+            let ext = match parse_external_manifest(&json) {
+                Ok(m) => m,
+                Err(e) => {
+                    skipped.push((dir_name.clone(), e));
+                    continue;
+                }
+            };
+            let pm = match ext.to_plugin_manifest() {
+                Ok(p) => p,
+                Err(e) => {
+                    skipped.push((dir_name.clone(), e));
+                    continue;
+                }
+            };
+            // Host id records the dist kind for WASM/JS hosts.
+            let host_id = if ext.dist.as_ref().is_some_and(|d| d.wasm.is_some()) {
+                format!("wasm:{}", pm.id)
+            } else if ext.dist.as_ref().is_some_and(|d| d.script.is_some()) {
+                format!("js:{}", pm.id)
+            } else {
+                format!("native:{}", pm.id)
+            };
+            if let Err(e) = self.register_external(pm, host_id, false) {
+                skipped.push((dir_name.clone(), e.to_string()));
+                continue;
+            }
+            let id = self.manifest(&dir_name).map(|m| m.id.clone()).unwrap_or_else(|| dir_name.clone());
+            loaded.push(id);
+        }
+        loaded.sort();
+        (loaded, skipped)
     }
 }
 

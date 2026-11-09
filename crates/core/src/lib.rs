@@ -11,6 +11,7 @@
 //! - [`theme`] ← Themes API validator (for `discord-themes`)
 
 pub mod fs_util;
+pub mod install;
 pub mod manifest;
 pub mod paths;
 pub mod repos;

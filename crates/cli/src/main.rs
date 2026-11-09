@@ -73,6 +73,10 @@ enum Commands {
 #[derive(Subcommand, Debug)]
 enum PluginAction {
     Validate { path: PathBuf },
+    List {
+        #[arg(long, default_value = "/tmp/valenced")]
+        data_dir: String,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -88,6 +92,17 @@ enum RepoAction {
         path: PathBuf,
         #[arg(long, default_value = "https://example.com/plugins")]
         url: String,
+    },
+    Install {
+        /// Repo index JSON (file path or https:// URL).
+        index: String,
+        /// Plugin id to install (e.g. `com.example.hello`).
+        id: String,
+        #[arg(long, default_value = "/tmp/valenced")]
+        data_dir: String,
+        /// Repo URL identity (defaults to the index path/url).
+        #[arg(long)]
+        repo_url: Option<String>,
     },
 }
 
@@ -118,6 +133,23 @@ fn main() -> Result<()> {
                 println!("✓ {} {} (dist: {})", pm.id, pm.version, if m.dist.as_ref().is_some_and(|d| d.wasm.is_some()) { "wasm" } else { "script" });
                 Ok(())
             }
+            PluginAction::List { data_dir } => {
+                let paths = valenced_core::paths::PluginPaths::new(&data_dir);
+                let mut reg = valenced_runtime::Registry::new();
+                let (loaded, skipped) = reg.load_from_dist(&paths);
+                if loaded.is_empty() {
+                    println!("(no plugins installed under {})", paths.dist().display());
+                } else {
+                    for id in &loaded {
+                        let m = reg.manifest(id).unwrap();
+                        println!("✓ {} {}", m.id, m.version);
+                    }
+                }
+                for (dir, why) in skipped {
+                    eprintln!("  ! skipped {dir}: {why}");
+                }
+                Ok(())
+            }
         },
         Commands::Theme { action } => match action {
             ThemeAction::Validate { path } => {
@@ -145,6 +177,45 @@ fn main() -> Result<()> {
                 let (index, warnings) = parse_repo_index(&json, &url).with_context_string("invalid repo index")?;
                 println!("✓ repo '{}' ({} plugins, {} warnings)", index.name, index.plugins.len(), warnings.len());
                 for w in warnings {
+                    eprintln!("  ! {w}");
+                }
+                Ok(())
+            }
+            RepoAction::Install { index, id, data_dir, repo_url } => {
+                use valenced_core::install::{UreqFetcher, install_one};
+                use valenced_core::resolver::ResolveRequest;
+                // Index may be a local file path or an https:// URL.
+                let index_bytes = if index.starts_with("http") {
+                    use valenced_core::install::Fetcher;
+                    UreqFetcher.fetch(&index).map_err(|e| anyhow::anyhow!(e))?
+                } else {
+                    std::fs::read(&index).with_context(|| format!("read {index}"))?
+                };
+                let index_json = String::from_utf8(index_bytes).map_err(|e| anyhow::anyhow!("index not utf8: {e}"))?;
+                let url = repo_url.unwrap_or_else(|| index.clone());
+                let (repo_index, warnings) = parse_repo_index(&index_json, &url).with_context_string("invalid repo index")?;
+                for w in warnings {
+                    eprintln!("  ! {w}");
+                }
+                let paths = valenced_core::paths::PluginPaths::new(&data_dir);
+                let installed: std::collections::HashMap<String, Version> = [
+                    ("valenced.api".into(), Version::parse("1.0.0").unwrap()),
+                    ("discord".into(), Version::parse("350.2").unwrap()),
+                ]
+                .into_iter()
+                .collect();
+                let fetcher = UreqFetcher;
+                let opts = ResolveRequest::new(&id);
+                let plan = install_one(&id, &url, &repo_index, &installed, opts, &fetcher, &paths)
+                    .map_err(|e| anyhow::anyhow!("{e}"))?;
+                if plan.actions.is_empty() {
+                    println!("(already up to date / no action for {id})");
+                } else {
+                    for a in &plan.actions {
+                        println!("✓ installed {}@{} from {}", a.id, a.version, a.repo);
+                    }
+                }
+                for w in plan.warnings {
                     eprintln!("  ! {w}");
                 }
                 Ok(())
