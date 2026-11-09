@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/logo.svg" width="128" height="128" alt="Valenced Rust logo (Discord color EF2538)"></p>
+
 # Valenced Rust — Pure Rust runtime for Valenced
 
 A **pure-Rust rebuild** of [Valenced](https://github.com/Valenced/valenced)
