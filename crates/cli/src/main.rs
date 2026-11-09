@@ -145,6 +145,14 @@ enum BundleAction {
         #[arg(long)]
         default_repo: Option<String>,
     },
+    #[command(about = "Generate @valenced/types import map from bundle/lib (replaces scripts/types.ts)")]
+    Types {
+        /// Lib dir (`bundle/lib`).
+        lib_dir: PathBuf,
+        /// Output file (`-` for stdout).
+        #[arg(long, default_value = "-")]
+        out: String,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -412,6 +420,19 @@ impl Plugin for {Crate} {{
                         manifest.version,
                         manifest.plugins.len()
                     );
+                }
+                Ok(())
+            }
+            BundleAction::Types { lib_dir, out } => {
+                let types = valenced_core::types_gen::generate_types(&lib_dir)
+                    .map_err(|e| anyhow::anyhow!(e))?;
+                let json = serde_json::to_string_pretty(&types)?;
+                if out == "-" {
+                    println!("{json}");
+                } else {
+                    std::fs::write(&out, &json).with_context(|| format!("write {out}"))?;
+                    let count = types["modules"].as_array().map(|a| a.len()).unwrap_or(0);
+                    println!("✓ generated types ({count} modules) → {out}");
                 }
                 Ok(())
             }

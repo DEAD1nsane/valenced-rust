@@ -19,6 +19,7 @@ pub mod repos;
 pub mod resolver;
 pub mod states;
 pub mod theme;
+pub mod types_gen;
 pub mod version;
 
 pub use manifest::{
