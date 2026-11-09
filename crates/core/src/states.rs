@@ -293,6 +293,7 @@ pub fn test_slot_with(flags: HashMap<&str, HashSet<PluginFlag>>) -> PluginStateS
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[allow(dead_code)]
 struct JsPayload(pub serde_json::Value);
 
 #[cfg(test)]

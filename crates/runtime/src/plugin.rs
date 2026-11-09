@@ -110,6 +110,7 @@ impl PluginContext {
         self.decorations.get(plugin_id)?.get(key).cloned()
     }
 
+    #[allow(dead_code)]
     pub(crate) fn register_unpatcher(&mut self, u: Unpatcher) {
         self.unpatchers.push(u);
     }

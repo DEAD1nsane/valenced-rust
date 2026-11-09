@@ -136,7 +136,7 @@ impl Patcher {
             .filter(|h| h.target == target && h.method == method && h.kind == HookKind::Instead)
             .max_by_key(|h| h.id)
             .cloned();
-        befores.sort_by(|a, b| b.id.cmp(&a.id)); // LIFO
+        befores.sort_by_key(|a| std::cmp::Reverse(a.id)); // LIFO
         afters.sort_by_key(|a| a.id); // FIFO
         (befores, instead, afters)
     }

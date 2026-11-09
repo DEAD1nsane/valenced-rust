@@ -8,7 +8,7 @@
 //! while the CLI uses `ureq` for real `https://` URLs.
 
 use std::collections::HashMap;
-use std::io::{Read, Write};
+use std::io::Read;
 use std::path::Path;
 
 use sha2::{Digest, Sha256};

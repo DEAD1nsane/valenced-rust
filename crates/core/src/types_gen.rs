@@ -19,8 +19,8 @@ use serde_json::{Value, json};
 pub fn generate_types(lib_dir: &Path) -> Result<Value, String> {
     let mut modules: BTreeSet<String> = BTreeSet::new();
     let mut importmap: BTreeMap<String, Value> = BTreeMap::new();
-    let mut hidden: BTreeSet<String> = BTreeSet::new();
-    let mut hidden_importmap: BTreeMap<String, Value> = BTreeMap::new();
+    let hidden: BTreeSet<String> = BTreeSet::new();
+    let hidden_importmap: BTreeMap<String, Value> = BTreeMap::new();
 
     let entries = std::fs::read_dir(lib_dir).map_err(|e| format!("read {}: {e}", lib_dir.display()))?;
     for entry in entries.flatten() {

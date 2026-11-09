@@ -53,6 +53,9 @@ fn ok_out(value: serde_json::Value) -> *mut c_char {
 }
 
 /// Free a string returned by any `valenced_*` function in this crate.
+/// # Safety
+/// - Inputs must be valid null-terminated UTF-8 C strings or null.
+/// - Caller must free the return with valenced_free_string.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn valenced_free_string(ptr: *mut c_char) {
     if ptr.is_null() {
@@ -68,6 +71,9 @@ fn version_to_json(v: &Version) -> serde_json::Value {
 }
 
 /// Parse a version string. Returns JSON `{"ok":true,"value":{"nums":[…],"label":…}}`.
+/// # Safety
+/// - Inputs must be valid null-terminated UTF-8 C strings or null.
+/// - Caller must free the return with valenced_free_string.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn valenced_version_parse(input: *const c_char) -> *mut c_char {
     let s = unsafe { cstr_to_str(input) };
@@ -81,6 +87,9 @@ pub unsafe extern "C" fn valenced_version_parse(input: *const c_char) -> *mut c_
 }
 
 /// Check `version` against `range` (`"*"` or `">=1.0 <2"`). Returns `{"ok":true,"value":true|false}`.
+/// # Safety
+/// - Inputs must be valid null-terminated UTF-8 C strings or null.
+/// - Caller must free the return with valenced_free_string.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn valenced_version_satisfies(
     version_ptr: *const c_char,
@@ -99,6 +108,9 @@ pub unsafe extern "C" fn valenced_version_satisfies(
 }
 
 /// Validate `ExternalManifest` JSON. Returns `{"ok":true,"value":{…manifest…}}` or an error.
+/// # Safety
+/// - Inputs must be valid null-terminated UTF-8 C strings or null.
+/// - Caller must free the return with valenced_free_string.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn valenced_manifest_validate(json_ptr: *const c_char) -> *mut c_char {
     let json = unsafe { cstr_to_str(json_ptr) };
@@ -112,6 +124,9 @@ pub unsafe extern "C" fn valenced_manifest_validate(json_ptr: *const c_char) -> 
 }
 
 /// Parse a repo index (`repoUrl`, `json`). Returns `{"ok":true,"value":{index,warnings}}`.
+/// # Safety
+/// - Inputs must be valid null-terminated UTF-8 C strings or null.
+/// - Caller must free the return with valenced_free_string.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn valenced_repo_parse(
     url_ptr: *const c_char,
@@ -132,6 +147,9 @@ pub unsafe extern "C" fn valenced_repo_parse(
 }
 
 /// Validate a theme document. Returns `{"ok":true,"value":{…theme…}}`.
+/// # Safety
+/// - Inputs must be valid null-terminated UTF-8 C strings or null.
+/// - Caller must free the return with valenced_free_string.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn valenced_theme_validate(json_ptr: *const c_char) -> *mut c_char {
     let json = unsafe { cstr_to_str(json_ptr) };
@@ -151,6 +169,9 @@ pub unsafe extern "C" fn valenced_theme_validate(json_ptr: *const c_char) -> *mu
 /// - `sourcesJson`: `{"<id>": {"repo": ..., "hash": ..., "channel": ..., "held": ...}}`
 ///
 /// Returns `{"ok":true,"value":{"actions":[…],"warnings":[…]}}`.
+/// # Safety
+/// - Inputs must be valid null-terminated UTF-8 C strings or null.
+/// - Caller must free the return with valenced_free_string.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn valenced_resolve_install(
     request_ptr: *const c_char,
@@ -283,6 +304,9 @@ pub unsafe extern "C" fn valenced_resolve_install(
 }
 
 /// The FFI ABI version, for loader startup checks.
+/// # Safety
+/// - Inputs must be valid null-terminated UTF-8 C strings or null.
+/// - Caller must free the return with valenced_free_string.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn valenced_ffi_abi_version() -> i64 {
     VALENCED_FFI_ABI_VERSION

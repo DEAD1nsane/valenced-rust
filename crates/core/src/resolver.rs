@@ -16,7 +16,7 @@
 
 use std::collections::HashMap;
 
-use crate::manifest::{ExternalDependency, PluginSource};
+use crate::manifest::PluginSource;
 use crate::repos::{REPO_CHANNEL_LATEST, RepoIndex, RepoVersion};
 use crate::version::{Version, VersionRange};
 
@@ -331,6 +331,7 @@ fn channel_of(
 
 /// Resolve `request` against `repos` by priority order.
 /// `installed` must include internal plugins (`valenced.api`, `discord`).
+#[allow(clippy::result_large_err)]
 pub fn resolve_install(
     request: &ResolveRequest,
     repos: &[RepoPair],
@@ -628,6 +629,7 @@ pub fn resolve_install(
     Ok(InstallPlan { actions, warnings })
 }
 
+#[allow(clippy::result_large_err)]
 fn pick_satisfying(
     sorted_newest_first: Vec<Candidate>,
     want: &Option<VersionRange>,
@@ -694,6 +696,7 @@ fn parse_deps_to_ranges(entry: &RepoVersion) -> HashMap<String, VersionRange> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::manifest::ExternalDependency;
     use crate::repos::{RepoIndex, RepoPlugin};
     use std::collections::HashMap;
 

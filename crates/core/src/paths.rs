@@ -1,6 +1,8 @@
 //! Port of `core/.../plugins/PluginPaths.kt`.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+#[cfg(test)]
+use std::path::Path;
 
 /// Every path the plugin system owns, rooted at the host app's data directory.
 ///

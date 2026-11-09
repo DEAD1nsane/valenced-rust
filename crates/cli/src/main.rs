@@ -119,6 +119,13 @@ enum RepoAction {
         #[arg(long)]
         repo_url: Option<String>,
     },
+    #[command(about = "Fetch a repo index and cache it (repos/index-<sha>.json)")]
+    Refresh {
+        /// Repo index URL (https://…).
+        url: String,
+        #[arg(long, default_value = "/tmp/valenced")]
+        data_dir: String,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -382,6 +389,28 @@ impl Plugin for {Crate} {{
                     }
                 }
                 for w in plan.warnings {
+                    eprintln!("  ! {w}");
+                }
+                Ok(())
+            }
+            RepoAction::Refresh { url, data_dir } => {
+                use valenced_core::install::{Fetcher, UreqFetcher};
+                use sha2::{Digest, Sha256};
+                let bytes = UreqFetcher.fetch(&url).map_err(|e| anyhow::anyhow!(e))?;
+                let (index, warnings) = parse_repo_index(
+                    std::str::from_utf8(&bytes).map_err(|e| anyhow::anyhow!("index not utf8: {e}"))?,
+                    &url,
+                )
+                .with_context_string("invalid repo index")?;
+                let mut hasher = Sha256::new();
+                hasher.update(&url);
+                let hash = format!("{:x}", hasher.finalize());
+                let paths = valenced_core::paths::PluginPaths::new(&data_dir);
+                paths.ensure_layout()?;
+                let cache = paths.repos().join(format!("index-{:.16}.json", hash));
+                valenced_core::fs_util::atomic_write_bytes(&cache, &bytes)?;
+                println!("✓ refreshed '{}' ({} plugins, {} warnings) → {}", index.name, index.plugins.len(), warnings.len(), cache.display());
+                for w in warnings {
                     eprintln!("  ! {w}");
                 }
                 Ok(())
