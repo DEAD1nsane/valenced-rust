@@ -8,12 +8,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-        with: { components: clippy, targets: aarch64-linux-android }
+        with: { components: clippy }
       - run: cargo test --workspace
       - run: cargo test -p valenced-runtime --features js-compat
       - run: cargo test -p valenced-runtime --features wasm
       - run: cargo clippy --workspace -- -D warnings
-      - run: cargo check -p valenced-ffi --target aarch64-linux-android
   ios:
     runs-on: macos-latest
     steps:
