@@ -14,3 +14,10 @@ jobs:
       - run: cargo test -p valenced-runtime --features wasm
       - run: cargo clippy --workspace -- -D warnings
       - run: cargo check -p valenced-ffi --target aarch64-linux-android
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: aarch64-apple-ios }
+      - run: cargo check -p valenced-ffi --target aarch64-apple-ios

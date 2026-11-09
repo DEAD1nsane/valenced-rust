@@ -2,6 +2,8 @@
 
 # Valenced Rust — Pure Rust runtime for Valenced
 
+[![CI](https://github.com/DEAD1nsane/valenced-rust/actions/workflows/ci.yml/badge.svg)](https://github.com/DEAD1nsane/valenced-rust/actions/workflows/ci.yml) [![License: GPL-3.0](https://img.shields.io/badge/license-GPL%2D3.0-EF2538.svg)](LICENSE)
+
 A **pure-Rust rebuild** of [Valenced](https://github.com/Valenced/valenced)
 in the spirit of Discord's [Project Phoenix](https://youtu.be/y1PDr15raAA):
 Discord is dropping Electron + React Native for a Rust client with GPUI,
