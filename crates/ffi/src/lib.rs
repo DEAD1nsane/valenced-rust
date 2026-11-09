@@ -52,7 +52,7 @@ fn ok_out(value: serde_json::Value) -> *mut c_char {
 
 /// Free a string returned by any `valenced_*` function in this crate.
 #[unsafe(no_mangle)]
-pub extern "C" fn valenced_free_string(ptr: *mut c_char) {
+pub unsafe extern "C" fn valenced_free_string(ptr: *mut c_char) {
     if ptr.is_null() {
         return;
     }
@@ -65,7 +65,7 @@ fn version_to_json(v: &Version) -> serde_json::Value {
 
 /// Parse a version string. Returns JSON `{"ok":true,"value":{"nums":[…],"label":…}}`.
 #[unsafe(no_mangle)]
-pub extern "C" fn valenced_version_parse(input: *const c_char) -> *mut c_char {
+pub unsafe extern "C" fn valenced_version_parse(input: *const c_char) -> *mut c_char {
     let s = unsafe { cstr_to_str(input) };
     let Some(s) = s else {
         return err_out(-2, "null input");
@@ -78,7 +78,7 @@ pub extern "C" fn valenced_version_parse(input: *const c_char) -> *mut c_char {
 
 /// Check `version` against `range` (`"*"` or `">=1.0 <2"`). Returns `{"ok":true,"value":true|false}`.
 #[unsafe(no_mangle)]
-pub extern "C" fn valenced_version_satisfies(version_ptr: *const c_char, range_ptr: *const c_char) -> *mut c_char {
+pub unsafe extern "C" fn valenced_version_satisfies(version_ptr: *const c_char, range_ptr: *const c_char) -> *mut c_char {
     let v = unsafe { cstr_to_str(version_ptr) };
     let r = unsafe { cstr_to_str(range_ptr) };
     let (Some(vs), Some(rs)) = (v.as_deref(), r.as_deref()) else {
@@ -93,7 +93,7 @@ pub extern "C" fn valenced_version_satisfies(version_ptr: *const c_char, range_p
 
 /// Validate `ExternalManifest` JSON. Returns `{"ok":true,"value":{…manifest…}}` or an error.
 #[unsafe(no_mangle)]
-pub extern "C" fn valenced_manifest_validate(json_ptr: *const c_char) -> *mut c_char {
+pub unsafe extern "C" fn valenced_manifest_validate(json_ptr: *const c_char) -> *mut c_char {
     let json = unsafe { cstr_to_str(json_ptr) };
     match json.as_deref() {
         Some(json) => match parse_external_manifest(json) {
@@ -106,7 +106,7 @@ pub extern "C" fn valenced_manifest_validate(json_ptr: *const c_char) -> *mut c_
 
 /// Parse a repo index (`repoUrl`, `json`). Returns `{"ok":true,"value":{index,warnings}}`.
 #[unsafe(no_mangle)]
-pub extern "C" fn valenced_repo_parse(url_ptr: *const c_char, json_ptr: *const c_char) -> *mut c_char {
+pub unsafe extern "C" fn valenced_repo_parse(url_ptr: *const c_char, json_ptr: *const c_char) -> *mut c_char {
     let url = unsafe { cstr_to_str(url_ptr) };
     let json = unsafe { cstr_to_str(json_ptr) };
     match (url.as_deref(), json.as_deref()) {
@@ -123,7 +123,7 @@ pub extern "C" fn valenced_repo_parse(url_ptr: *const c_char, json_ptr: *const c
 
 /// Validate a theme document. Returns `{"ok":true,"value":{…theme…}}`.
 #[unsafe(no_mangle)]
-pub extern "C" fn valenced_theme_validate(json_ptr: *const c_char) -> *mut c_char {
+pub unsafe extern "C" fn valenced_theme_validate(json_ptr: *const c_char) -> *mut c_char {
     let json = unsafe { cstr_to_str(json_ptr) };
     match json.as_deref() {
         Some(json) => match parse_theme(json) {
@@ -136,7 +136,7 @@ pub extern "C" fn valenced_theme_validate(json_ptr: *const c_char) -> *mut c_cha
 
 /// The FFI ABI version, for loader startup checks.
 #[unsafe(no_mangle)]
-pub extern "C" fn valenced_ffi_abi_version() -> i64 {
+pub unsafe extern "C" fn valenced_ffi_abi_version() -> i64 {
     VALENCED_FFI_ABI_VERSION
 }
 
@@ -148,14 +148,14 @@ mod tests {
     fn call(ptr: *mut c_char) -> serde_json::Value {
         assert!(!ptr.is_null());
         let v: serde_json::Value = serde_json::from_str(unsafe { CStr::from_ptr(ptr).to_str().unwrap() }).unwrap();
-        valenced_free_string(ptr);
+        unsafe { valenced_free_string(ptr) };
         v
     }
 
     #[test]
     fn version_parse_via_ffi() {
         let input = CString::new("1.2.0-rc").unwrap();
-        let out = call(valenced_version_parse(input.as_ptr()));
+        let out = call(unsafe { valenced_version_parse(input.as_ptr()) });
         assert_eq!(out["ok"], true);
         assert_eq!(out["value"]["display"], "1.2.0-rc");
     }
@@ -164,20 +164,20 @@ mod tests {
     fn satisfies_via_ffi() {
         let v = CString::new("1.5-rc").unwrap();
         let r = CString::new(">=1.0 <2").unwrap();
-        let out = call(valenced_version_satisfies(v.as_ptr(), r.as_ptr()));
+        let out = call(unsafe { valenced_version_satisfies(v.as_ptr(), r.as_ptr()) });
         assert_eq!(out["value"], true);
     }
 
     #[test]
     fn manifest_validate_via_ffi() {
         let json = CString::new(r#"{"format":1,"id":"com.example.hello","name":"Hello","version":"1.0.0","dependencies":{"valenced.api":{},"discord":{}}}"#).unwrap();
-        let out = call(valenced_manifest_validate(json.as_ptr()));
+        let out = call(unsafe { valenced_manifest_validate(json.as_ptr()) });
         assert_eq!(out["ok"], true);
     }
 
     #[test]
     fn null_input_is_safe() {
-        let out = call(valenced_version_parse(std::ptr::null()));
+        let out = call(unsafe { valenced_version_parse(std::ptr::null()) });
         assert_eq!(out["ok"], false);
     }
 }
