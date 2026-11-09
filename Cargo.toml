@@ -19,6 +19,6 @@ zip = { version = "2", default-features = false, features = ["deflate"] }
 ureq = { version = "2.12", default-features = false, features = ["tls"] }
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 license = "GPL-3.0-only"

@@ -38,3 +38,7 @@ First Pure Rust rebuild of Valenced (Phoenix split: thin native loaders + shared
 ### Docs + CI
 - `README`, `docs/ARCHITECTURE`/`MIGRATING_FROM_TS`/`FFI_GUIDE`/`PHOENIX_NOTES`/`MOBILE_BUILDS`/`E2E_INSTALL`
 - GitHub Actions: `test` (workspace + js-compat + wasm + clippy `-D warnings`) + `ios` check
+
+## v0.2.0 — unreleased
+
+- `valenced theme preview` (HTML grid), `ffi host-check`, `repo refresh/list`, `plugin start`, `bundle types`, FFI `resolve_install`, iOS/Android CI coverage, `#EF2538` branding + docs previews.
