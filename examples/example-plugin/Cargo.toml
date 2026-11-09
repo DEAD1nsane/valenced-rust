@@ -1,0 +1,19 @@
+[package]
+name = "valenced-example-plugin"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-3.0-only"
+description = "Example Rust plugin (Show Tag port) — copy to start a new plugin"
+
+# Detached from the parent workspace: users copy this dir to start a plugin.
+[workspace]
+
+[lib]
+name = "show_tag"
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+[dependencies]
+serde_json = "1"
+valenced-core = { path = "../../crates/core" }
+valenced-runtime = { path = "../../crates/runtime" }

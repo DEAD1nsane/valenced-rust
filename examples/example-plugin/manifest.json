@@ -1,0 +1,17 @@
+{
+  "format": 1,
+  "id": "bleelblep.show-tag",
+  "name": "Show Tag",
+  "description": "Show usernames next to display names in chat, including in replies.",
+  "author": "bleelblep <119043674385547264>",
+  "contributors": [
+    "Cynosphere <150745989836308480> (https://github.com/Cynosphere \"GitHub\")"
+  ],
+  "icon": "AtIcon",
+  "version": "1.0.0",
+  "dependencies": {
+    "valenced.api": { "version": ">=1 <2" },
+    "discord": { "version": "*" }
+  },
+  "dist": { "wasm": "plugin.wasm" }
+}

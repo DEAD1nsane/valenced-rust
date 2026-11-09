@@ -1,0 +1,15 @@
+# Rust
+/target/
+**/target/
+Cargo.lock
+# Machine AGENTS.md (symlink to ~/.git-template, same as discord-themes)
+AGENTS.md
+# Editors
+.DS_Store
+.idea/
+# Local dev bundle server
+*.bundle
+valenced.bundle
+# Local loader overrides (keep tokens out of git)
+.env
+dist/

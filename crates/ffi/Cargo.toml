@@ -1,0 +1,16 @@
+[package]
+name = "valenced-ffi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "C-ABI bridge so Android (JNI) and iOS (ObjC/C++) loaders call Rust core/runtime"
+
+[lib]
+name = "valenced_ffi"
+crate-type = ["cdylib", "staticlib"]
+path = "src/lib.rs"
+
+[dependencies]
+serde_json.workspace = true
+valenced-core = { path = "../core" }
+valenced-runtime = { path = "../runtime" }

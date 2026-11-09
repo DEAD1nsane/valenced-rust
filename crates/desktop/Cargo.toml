@@ -1,0 +1,28 @@
+[package]
+name = "valenced-desktop"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "GPUI desktop shell (Project Phoenix style) — theme/plugin manager + live bundle server"
+
+[[bin]]
+name = "valenced-desktop"
+path = "src/main.rs"
+
+[features]
+default = []
+# Real GPUI build, desktop-only (needs GPU/windowing, not for Termux CI):
+#   cargo run -p valenced-desktop --features gpui
+gpui = ["dep:gpui"]
+# Optional headless theme preview (no GPU):
+headless = []
+
+[dependencies]
+anyhow.workspace = true
+serde_json.workspace = true
+clap.workspace = true
+valenced-core = { path = "../core" }
+valenced-runtime = { path = "../runtime" }
+
+# GPUI is from the Zed project; pinned here but only built with --features gpui.
+gpui = { version = "0.2", optional = true }

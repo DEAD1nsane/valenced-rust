@@ -1,0 +1,18 @@
+[package]
+name = "valenced-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Valenced Rust CLI: validate, resolve, repo, theme, plugin commands"
+
+[[bin]]
+name = "valenced"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+valenced-core = { path = "../core" }
+valenced-runtime = { path = "../runtime" }

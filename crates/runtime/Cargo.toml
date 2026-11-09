@@ -1,0 +1,28 @@
+[package]
+name = "valenced-runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Pure-Rust Valenced plugin runtime: Registry, lifecycle, patcher, Discord API, WASM host"
+
+[lib]
+name = "valenced_runtime"
+path = "src/lib.rs"
+
+[features]
+default = []
+# Optional: embed a pure-Rust JS engine so existing TypeScript plugins
+# (valenced-community-plugins) still run under the Rust host.
+# Requires network at build time to fetch boa_engine.
+js-compat = ["dep:boa_engine"]
+# Optional: WASM execution via wasmi (pure Rust, no C++).
+wasm = ["dep:wasmi"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+valenced-core = { path = "../core" }
+
+boa_engine = { version = "0.20", optional = true }
+wasmi = { version = "0.31", optional = true }

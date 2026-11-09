@@ -1,0 +1,15 @@
+[package]
+name = "valenced-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Valenced core: versions, manifests, repos, resolver, states (Rust port of Kotlin Multiplatform core)"
+
+[lib]
+name = "valenced_core"
+path = "src/lib.rs"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
