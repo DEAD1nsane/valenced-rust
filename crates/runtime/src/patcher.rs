@@ -137,7 +137,7 @@ impl Patcher {
             .max_by_key(|h| h.id)
             .cloned();
         befores.sort_by(|a, b| b.id.cmp(&a.id)); // LIFO
-        afters.sort_by(|a, b| a.id.cmp(&b.id)); // FIFO
+        afters.sort_by_key(|a| a.id); // FIFO
         (befores, instead, afters)
     }
 

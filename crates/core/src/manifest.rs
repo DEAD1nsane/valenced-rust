@@ -202,14 +202,13 @@ impl ExternalManifest {
             }
         }
         // Rust runtime: exactly one dist target.
-        if let Some(dist) = &self.dist {
-            if dist.script.is_some() && dist.wasm.is_some() {
+        if let Some(dist) = &self.dist
+            && dist.script.is_some() && dist.wasm.is_some() {
                 return Err(format!(
                     "Plugin '{}' declares both dist.script and dist.wasm",
                     self.id
                 ));
             }
-        }
         Ok(())
     }
 

@@ -302,19 +302,16 @@ fn channel_pointed_version(
     sources: &HashMap<String, PluginSource>,
 ) -> Option<Candidate> {
     for (repo_url, index) in repos_for(id, request, repos, installed, sources) {
-        if let Some(plugin) = index.plugins.get(id) {
-            if let Some(target) = plugin.channels.get(channel) {
-                if let Some(entry) = plugin.versions.get(target) {
-                    if let Ok(v) = Version::parse(target) {
+        if let Some(plugin) = index.plugins.get(id)
+            && let Some(target) = plugin.channels.get(channel)
+                && let Some(entry) = plugin.versions.get(target)
+                    && let Ok(v) = Version::parse(target) {
                         return Some(Candidate {
                             repo: repo_url,
                             version: v,
                             entry: entry.clone(),
                         });
                     }
-                }
-            }
-        }
     }
     None
 }
@@ -460,8 +457,8 @@ pub fn resolve_install(
             match channel_pointed_version(&id, ch, request, repos, installed, sources) {
                 Some(c) => {
                     // Check range if this is a dependency.
-                    if let Some(want) = &want_range {
-                        if !want.satisfies(&c.version) {
+                    if let Some(want) = &want_range
+                        && !want.satisfies(&c.version) {
                             if is_optional_dep {
                                 if let Some(req) = &requester {
                                     warnings.push(format!("Target {id}@{ch} does not satisfy {req} (requires {want}); skipped optional dependency"));
@@ -474,21 +471,20 @@ pub fn resolve_install(
                                 }));
                             }
                         }
-                    }
                     c
                 }
                 None => {
                     // No such channel → fall through to newest.
                     let sorted = sorted_newest_first(cands_all);
-                    let c = pick_satisfying(
+                    
+                    pick_satisfying(
                         sorted,
                         &want_range,
                         &id,
                         &requester,
                         is_optional_dep,
                         &mut warnings,
-                    )?;
-                    c
+                    )?
                 }
             }
         } else {
@@ -504,8 +500,8 @@ pub fn resolve_install(
         };
 
         // Check dependency range satisfied (for non-root deps).
-        if let Some(want) = &want_range {
-            if !want.satisfies(&pick.version) {
+        if let Some(want) = &want_range
+            && !want.satisfies(&pick.version) {
                 if is_optional_dep {
                     if let Some(req) = &requester {
                         warnings.push(format!("Optional dependency '{id}' of {req} is unavailable (requires {want}); skipped"));
@@ -526,7 +522,6 @@ pub fn resolve_install(
                     detail: None,
                 }));
             }
-        }
 
         // Compute candidates map per repo (for `findUpdates`-style UI).
         let mut candidates_map: HashMap<String, HashMap<String, VersionCandidate>> = HashMap::new();
@@ -568,17 +563,16 @@ pub fn resolve_install(
         });
 
         // Link edges from our requester.
-        if let Some(req) = &requester {
-            if let Some(want) = &want_range {
+        if let Some(req) = &requester
+            && let Some(want) = &want_range {
                 link(&mut edges, &id, req, is_optional_dep, want.clone());
             }
-        }
 
         // Queue our own dependencies.
         for (dep_id, dep) in &pick.entry.dependencies {
             // Skip reserved providers already satisfied.
-            if crate::manifest::reserved_dependency_ids().contains(dep_id.as_str()) {
-                if let Some(inst) = installed.get(dep_id) {
+            if crate::manifest::reserved_dependency_ids().contains(dep_id.as_str())
+                && let Some(inst) = installed.get(dep_id) {
                     let range = dep
                         .version
                         .as_ref()
@@ -588,19 +582,17 @@ pub fn resolve_install(
                         continue;
                     }
                 }
-            }
             let range = dep
                 .version
                 .as_ref()
                 .and_then(|v| VersionRange::parse(v).ok())
                 .unwrap_or(VersionRange::any());
             // Installed already satisfies → skip (but still link edge for dependents map).
-            if let Some(inst) = installed.get(dep_id) {
-                if range.satisfies(inst) && !request.targets.contains_key(dep_id) {
+            if let Some(inst) = installed.get(dep_id)
+                && range.satisfies(inst) && !request.targets.contains_key(dep_id) {
                     link(&mut edges, dep_id, &id, dep.optional, range);
                     continue;
                 }
-            }
             queue.push((dep_id.clone(), Some(range), Some(id.clone()), dep.optional));
         }
     }
@@ -610,14 +602,13 @@ pub fn resolve_install(
         if let Some(deps) = edges.get(&action.id) {
             action.dependents = deps.clone();
         }
-        if let Some(from) = &action.replaces {
-            if &action.version < from {
+        if let Some(from) = &action.replaces
+            && &action.version < from {
                 warnings.push(format!(
                     "Downgrading '{}' from {from} to {}",
                     action.id, action.version
                 ));
             }
-        }
     }
     // Breaks: planned version outside a planned dependent's range.
     for action in &actions {
@@ -625,14 +616,12 @@ pub fn resolve_install(
             if let Some(dep_range) = planned_deps
                 .get(dependent_id)
                 .and_then(|m| m.get(&action.id))
-            {
-                if !dep_range.satisfies(&action.version) {
+                && !dep_range.satisfies(&action.version) {
                     warnings.push(format!(
                         "Installing {}@{} does not satisfy '{dependent_id}' (requires {dep_range})",
                         action.id, action.version
                     ));
                 }
-            }
         }
     }
 

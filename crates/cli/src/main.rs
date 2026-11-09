@@ -10,8 +10,7 @@
 //! valenced ffi    self-test
 //! ```
 use anyhow::{Context, Result};
-use clap::{Parser, Subcommand, ValueEnum};
-use std::collections::HashMap;
+use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
 use valenced_core::manifest::{parse_bundle_manifest, parse_external_manifest};

@@ -98,11 +98,10 @@ pub fn flags_from_js_payload(
 ) -> HashSet<PluginFlag> {
     let mut out = HashSet::new();
     for name in ["enabled", "requiredByUser", "pendingReload", "startedLate"] {
-        if payload.get(name) == Some(&serde_json::Value::Bool(true)) {
-            if let Some(f) = PluginFlag::from_js_name(name) {
+        if payload.get(name) == Some(&serde_json::Value::Bool(true))
+            && let Some(f) = PluginFlag::from_js_name(name) {
                 out.insert(f);
             }
-        }
     }
     out
 }

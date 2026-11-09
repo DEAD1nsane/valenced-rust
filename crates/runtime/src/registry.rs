@@ -216,8 +216,8 @@ impl Registry {
 
     pub fn stop_all(&mut self, unscoped: UnscopedApi) {
         for id in self.order.clone().into_iter().rev() {
-            if let Some(entry) = self.entries.get_mut(&id) {
-                if let Some(plugin) = entry.plugin.as_mut() {
+            if let Some(entry) = self.entries.get_mut(&id)
+                && let Some(plugin) = entry.plugin.as_mut() {
                     let mut ctx = PluginContext::new(
                         entry.manifest.clone(),
                         Lifecycle::Start,
@@ -226,7 +226,6 @@ impl Registry {
                     let _ = plugin.stop(&mut ctx);
                     ctx.run_cleanups();
                 }
-            }
         }
     }
 

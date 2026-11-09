@@ -231,11 +231,10 @@ pub unsafe extern "C" fn valenced_resolve_install(
                 .and_then(|x| x.as_str())
                 .unwrap_or("")
                 .to_string();
-            if let Some(index_v) = entry.get("index") {
-                if let Ok(index) = serde_json::from_value::<RepoIndex>(index_v.clone()) {
+            if let Some(index_v) = entry.get("index")
+                && let Ok(index) = serde_json::from_value::<RepoIndex>(index_v.clone()) {
                     repos.push((url, index));
                 }
-            }
         }
     }
 

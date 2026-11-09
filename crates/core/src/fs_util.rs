@@ -86,11 +86,10 @@ pub fn list_file_names(dir: &Path) -> Vec<String> {
     let mut out = Vec::new();
     for entry in entries.flatten() {
         let path = entry.path();
-        if path.is_file() {
-            if let Some(name) = path.file_name().and_then(|s| s.to_str()) {
+        if path.is_file()
+            && let Some(name) = path.file_name().and_then(|s| s.to_str()) {
                 out.push(name.to_string());
             }
-        }
     }
     out.sort();
     out

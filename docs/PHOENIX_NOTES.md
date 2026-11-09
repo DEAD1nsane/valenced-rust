@@ -29,6 +29,36 @@ Default `valenced-desktop` is headless (`theme-report`, `dev-snippet`,
 cargo run -p valenced-desktop --features gpui -- run
 ```
 
+### GPUI build status
+
+`crates/desktop/src/ui.rs` mirrors the canonical
+`gpui-0.2.2/examples/hello_world.rs` shape (`Application::run` →
+`cx.open_window` → root view with `Render` + `div()`), using only the
+minimal GPUI 0.2 API. It previously imported symbols that no longer exist
+in GPUI 0.2 (`Model`, `WindowHandler`, a `Titlebar` element, free-function
+`scrollable`, `HttpClient` at the crate root) and created an orphaned
+`ThemeView` while displaying a hardcoded empty one — both fixed by the
+simplification. `run()`'s signature is unchanged, so `main.rs` is
+untouched.
+
+On Linux glibc (x11/wayland) verify with:
+
+```sh
+cargo check -p valenced-desktop --features gpui
+cargo test -p valenced-desktop   # default, no gpui — must stay green
+```
+
+On Termux/Android the `--features gpui` check fails before reaching our
+code, inside an upstream transitive dep:
+`xattr 0.2.3` (`E0425: cannot find value ENOATTR in crate ::libc`), pulled
+via `gpui 0.2.2 → gpui_http_client 0.2.2 → zed-async-tar 0.5.0-zed → xattr`.
+Android's bionic `libc` has no `ENOATTR`, so this crate cannot build for
+`aarch64-linux-android`. Upstream fix is in `zed-async-tar`/`xattr` (cfg-guard
+or drop `xattr` on Android) or in GPUI (don't unconditionally link
+`gpui_http_client`). Desktop-only either way: the GPUI window itself
+(needs a window manager + GPU) and `ui.rs` (`mod ui` is
+`#[cfg(feature = "gpui")]`); default `cargo test` never builds it.
+
 ## Memory / perf posture
 
 Like Phoenix, no benchmark claims without measurements. The Rust host

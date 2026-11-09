@@ -174,14 +174,13 @@ pub fn generate_bundle_manifest(
                     raw.id
                 ));
             }
-            if let Some(v) = &raw.version {
-                if Version::parse(v).is_err() {
+            if let Some(v) = &raw.version
+                && Version::parse(v).is_err() {
                     return Err(format!(
                         "Internal plugin \"{}\" has an invalid version: {v}",
                         raw.id
                     ));
                 }
-            }
 
             let default_source = match &raw.default_source {
                 None => None,
@@ -233,11 +232,11 @@ pub fn generate_bundle_manifest(
                 version: raw.version,
                 name: raw.name,
                 description: raw.description,
-                author: raw.author.as_ref().map(|v| contributor_str(v)),
+                author: raw.author.as_ref().map(contributor_str),
                 contributors: raw
                     .contributors
                     .iter()
-                    .map(|v| contributor_str(v))
+                    .map(contributor_str)
                     .collect(),
                 icon: raw.icon,
                 default_source,

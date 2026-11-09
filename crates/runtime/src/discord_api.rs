@@ -110,8 +110,8 @@ impl HostBridge for StubHost {
     }
     fn call_native(
         &self,
-        method: &str,
-        args: serde_json::Value,
+        _method: &str,
+        _args: serde_json::Value,
     ) -> Result<serde_json::Value, String> {
         Ok(serde_json::Value::Null)
     }

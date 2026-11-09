@@ -30,11 +30,10 @@ impl Version {
         if nums.is_empty() {
             return Err("Version must have at least one numeric segment".into());
         }
-        if let Some(l) = &label {
-            if !is_valid_label(l) {
+        if let Some(l) = &label
+            && !is_valid_label(l) {
                 return Err(format!("Invalid version label: '{l}'"));
             }
-        }
         Ok(Self { nums, label })
     }
 
@@ -47,11 +46,10 @@ impl Version {
             Some(i) => (&value[..i], Some(value[i + 1..].to_string())),
             None => (value, None),
         };
-        if let Some(ref l) = label {
-            if !is_valid_label(l) {
+        if let Some(ref l) = label
+            && !is_valid_label(l) {
                 return Err(format!("Invalid version label: '{l}' in '{value}'"));
             }
-        }
         let mut nums = Vec::new();
         for seg in nums_part.split('.') {
             if seg.is_empty() {
