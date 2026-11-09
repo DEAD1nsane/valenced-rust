@@ -67,6 +67,10 @@ cargo run -p valenced-cli -- theme css      ~/GitHub/discord-themes/Themes/DARK/
 cargo run -p valenced-desktop -- theme-report ~/GitHub/discord-themes/Themes/DARK/"RBW AMOLED.json"
 cargo run -p valenced-desktop -- dev-snippet --host 192.168.1.20
 
+# FFI / host health + repo cache
+cargo run -p valenced-cli -- ffi host-check --data-dir /tmp/valenced
+cargo run -p valenced-cli -- repo refresh https://example.com/plugins.json --data-dir /tmp/valenced
+
 # Real GPUI shell (needs a desktop machine + GPU)
 cargo run -p valenced-desktop --features gpui -- run
 
