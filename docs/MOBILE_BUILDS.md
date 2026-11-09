@@ -14,6 +14,11 @@ Requires NDK / Xcode — not buildable in Termux CI (same as upstream
 `android/` + `ios/` today). `cargo test --workspace` (host) covers all
 logic; device builds only need the FFI artifact.
 
+> **Prebuilt Android artifact:** `libvalenced_ffi-aarch64-linux-android.so`
+> is attached to the [v0.2.0 release](https://github.com/DEAD1nsane/valenced-rust/releases/tag/v0.2.0)
+> (NDK r27c, `aarch64-linux-android24`, sha256 `64d36b491f4cf7c35264c4b5b84f19c3022c20fe9c7c6bc4a1f85a00d880a304`).
+> If rebuilding yourself, use exactly that NDK + linker.
+
 ## Android (NDK)
 
 ```sh

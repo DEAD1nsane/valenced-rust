@@ -47,6 +47,7 @@ Release engineering + the first downloadable binaries.
 - `#EF2538` branding (README, logo, license shield) + docs theme previews
 - Release pipeline: per-target assets (`valenced-<target>[.exe]`, `valenced-desktop-<target>[.exe]`) + `sha256sums-<target>.txt` for Linux x86_64, macOS x86_64/aarch64, Windows x86_64
 - `libc` pinned `0.2.189` in committed `Cargo.lock` (GPUI/`xattr` `ENOATTR` fix), `--locked` release builds
+- Android: `libvalenced_ffi-aarch64-linux-android.so` attached to the release (built with NDK r27c on Linux; sha256 `64d36b491f4cf7c35264c4b5b84f19c3022c20fe9c7c6bc4a1f85a00d880a304`)
 - CI: workspace + js-compat + wasm + clippy `-D warnings`, iOS check
 
 Install: download the asset for your platform from [Releases](https://github.com/DEAD1nsane/valenced-rust/releases/tag/v0.2.0), verify against `sha256sums-<target>.txt`, `chmod +x` on Linux/macOS.
