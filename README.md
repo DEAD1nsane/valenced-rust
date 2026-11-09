@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/DEAD1nsane/valenced-rust/actions/workflows/ci.yml/badge.svg)](https://github.com/DEAD1nsane/valenced-rust/actions/workflows/ci.yml) [![License: GPL-3.0](https://img.shields.io/badge/license-GPL%2D3.0-EF2538.svg)](LICENSE) [![Release](https://img.shields.io/github/v/release/DEAD1nsane/valenced-rust/EF2538)](https://github.com/DEAD1nsane/valenced-rust/releases)
 
-> **Download:** see [Releases](https://github.com/DEAD1nsane/valenced-rust/releases) (`valenced` + `valenced-desktop` for Linux/macOS/Windows). Mobile `libvalenced_ffi` artifacts follow with the NDK/Xcode builds — see `docs/MOBILE_BUILDS.md`.
+> **Download:** [v0.2.0 release](https://github.com/DEAD1nsane/valenced-rust/releases/tag/v0.2.0) — `valenced-<target>[.exe]` and `valenced-desktop-<target>[.exe]` for Linux (x86_64), macOS (x86_64 + aarch64), Windows (x86_64), plus `sha256sums-<target>.txt`. Mobile `libvalenced_ffi` artifacts follow with the NDK/Xcode builds — see `docs/MOBILE_BUILDS.md`.
 
 A **pure-Rust rebuild** of [Valenced](https://github.com/Valenced/valenced)
 in the spirit of Discord's [Project Phoenix](https://youtu.be/y1PDr15raAA):
