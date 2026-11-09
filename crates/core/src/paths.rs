@@ -30,8 +30,14 @@ impl PluginPaths {
         Self { data_dir, root }
     }
 
-    pub fn with_root_override(data_dir: impl Into<PathBuf>, root_override: impl Into<PathBuf>) -> Self {
-        Self { data_dir: data_dir.into(), root: root_override.into() }
+    pub fn with_root_override(
+        data_dir: impl Into<PathBuf>,
+        root_override: impl Into<PathBuf>,
+    ) -> Self {
+        Self {
+            data_dir: data_dir.into(),
+            root: root_override.into(),
+        }
     }
 
     /// Installed plugin directories, one per plugin ID.
@@ -101,7 +107,13 @@ impl PluginPaths {
     }
 
     pub fn ensure_layout(&self) -> std::io::Result<()> {
-        for dir in [self.dist(), self.storage(), self.states(), self.slots(), self.repos()] {
+        for dir in [
+            self.dist(),
+            self.storage(),
+            self.states(),
+            self.slots(),
+            self.repos(),
+        ] {
             std::fs::create_dir_all(dir)?;
         }
         Ok(())
@@ -131,9 +143,18 @@ mod tests {
     fn layout() {
         let p = PluginPaths::new("/data/files");
         assert_eq!(p.root, PathBuf::from("/data/files/files/valenced/plugins"));
-        assert_eq!(p.dist(), PathBuf::from("/data/files/files/valenced/plugins/dist"));
-        assert_eq!(p.storage_for("default"), PathBuf::from("/data/files/files/valenced/plugins/storage/default"));
-        assert_eq!(p.repos_json(), PathBuf::from("/data/files/files/valenced/plugins/repos/repos.json"));
+        assert_eq!(
+            p.dist(),
+            PathBuf::from("/data/files/files/valenced/plugins/dist")
+        );
+        assert_eq!(
+            p.storage_for("default"),
+            PathBuf::from("/data/files/files/valenced/plugins/storage/default")
+        );
+        assert_eq!(
+            p.repos_json(),
+            PathBuf::from("/data/files/files/valenced/plugins/repos/repos.json")
+        );
     }
 
     #[test]

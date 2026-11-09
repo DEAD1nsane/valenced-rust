@@ -32,7 +32,9 @@ pub const DISCORD_DEPENDENCY_ID: &str = "discord";
 
 /// Reserved dependency IDs, served by internal provider plugins.
 pub fn reserved_dependency_ids() -> std::collections::HashSet<&'static str> {
-    [API_DEPENDENCY_ID, DISCORD_DEPENDENCY_ID].into_iter().collect()
+    [API_DEPENDENCY_ID, DISCORD_DEPENDENCY_ID]
+        .into_iter()
+        .collect()
 }
 
 fn api_version() -> Version {
@@ -125,8 +127,13 @@ fn has_uri_scheme(s: &str) -> bool {
     match colon {
         Some(i) if i > 0 => {
             let scheme = &s[..i];
-            scheme.chars().next().is_some_and(|c| c.is_ascii_alphabetic())
-                && scheme.chars().all(|c| c.is_ascii_alphanumeric() || c == '+' || c == '.' || c == '-')
+            scheme
+                .chars()
+                .next()
+                .is_some_and(|c| c.is_ascii_alphabetic())
+                && scheme
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '+' || c == '.' || c == '-')
         }
         _ => false,
     }
@@ -151,7 +158,9 @@ pub fn validated_plugin_icon(icon: &str) -> Option<String> {
 /// Matches `[a-zA-Z0-9.-]`, with no consecutive dots or leading dot.
 pub fn require_valid_plugin_id(id: &str) -> Result<(), String> {
     let ok = !id.is_empty()
-        && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-')
+        && id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-')
         && !id.contains("..")
         && !id.starts_with('.');
     if ok {
@@ -174,7 +183,10 @@ impl ExternalManifest {
         let reserved = reserved_dependency_ids();
         for reserved_id in &reserved {
             if !self.dependencies.contains_key(*reserved_id) {
-                return Err(format!("Plugin '{}' does not declare the mandatory '{reserved_id}' dependency", self.id));
+                return Err(format!(
+                    "Plugin '{}' does not declare the mandatory '{reserved_id}' dependency",
+                    self.id
+                ));
             }
         }
         for (dep_id, dep) in &self.dependencies {
@@ -183,13 +195,19 @@ impl ExternalManifest {
                 VersionRange::parse(v)?;
             }
             if dep.optional && reserved.contains(dep_id.as_str()) {
-                return Err(format!("Plugin '{id}': the '{dep_id}' dependency cannot be optional", id = self.id));
+                return Err(format!(
+                    "Plugin '{id}': the '{dep_id}' dependency cannot be optional",
+                    id = self.id
+                ));
             }
         }
         // Rust runtime: exactly one dist target.
         if let Some(dist) = &self.dist {
             if dist.script.is_some() && dist.wasm.is_some() {
-                return Err(format!("Plugin '{}' declares both dist.script and dist.wasm", self.id));
+                return Err(format!(
+                    "Plugin '{}' declares both dist.script and dist.wasm",
+                    self.id
+                ));
             }
         }
         Ok(())
@@ -206,7 +224,13 @@ impl ExternalManifest {
             } else {
                 VersionRange::any()
             };
-            dependencies.insert(dep_id.clone(), PluginDependency { version: range, optional: dep.optional });
+            dependencies.insert(
+                dep_id.clone(),
+                PluginDependency {
+                    version: range,
+                    optional: dep.optional,
+                },
+            );
         }
         Ok(PluginManifest {
             id: self.id.clone(),
@@ -223,7 +247,8 @@ impl ExternalManifest {
 
 /// Parse + validate external manifest JSON (tolerant of unknown keys).
 pub fn parse_external_manifest(json: &str) -> Result<ExternalManifest, String> {
-    let m: ExternalManifest = serde_json::from_str(json).map_err(|e| format!("Unable to parse manifest JSON: {e}"))?;
+    let m: ExternalManifest =
+        serde_json::from_str(json).map_err(|e| format!("Unable to parse manifest JSON: {e}"))?;
     m.validate()?;
     Ok(m)
 }
@@ -326,7 +351,13 @@ impl BundlePlugin {
             } else {
                 VersionRange::any()
             };
-            dependencies.insert(dep_id.clone(), PluginDependency { version: range, optional: dep.optional });
+            dependencies.insert(
+                dep_id.clone(),
+                PluginDependency {
+                    version: range,
+                    optional: dep.optional,
+                },
+            );
         }
         let version = if let Some(v) = &self.version {
             Version::parse(v)?
@@ -396,9 +427,15 @@ mod tests {
 
     #[test]
     fn icon_validation() {
-        assert_eq!(validated_plugin_icon("PaintPaletteIcon"), Some("PaintPaletteIcon".into()));
+        assert_eq!(
+            validated_plugin_icon("PaintPaletteIcon"),
+            Some("PaintPaletteIcon".into())
+        );
         assert_eq!(validated_plugin_icon("https://evil.example/x.png"), None);
-        assert!(validated_plugin_icon(&format!("data:image/png;base64,{}", "A".repeat(200_000))).is_none());
+        assert!(
+            validated_plugin_icon(&format!("data:image/png;base64,{}", "A".repeat(200_000)))
+                .is_none()
+        );
     }
 
     #[test]

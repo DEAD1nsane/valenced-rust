@@ -98,14 +98,20 @@ pub fn generate_bundle_manifest(
     let mut plugins: Vec<BundlePlugin> = Vec::new();
     let mut seen: HashMap<String, String> = HashMap::new();
 
-    let stages = std::fs::read_dir(plugins_dir).map_err(|e| format!("read {}: {e}", plugins_dir.display()))?;
+    let stages = std::fs::read_dir(plugins_dir)
+        .map_err(|e| format!("read {}: {e}", plugins_dir.display()))?;
     for stage_entry in stages.flatten() {
         let stage_path = stage_entry.path();
         if !stage_path.is_dir() {
             continue;
         }
-        let stage_name = stage_path.file_name().and_then(|s| s.to_str()).unwrap_or("?").to_string();
-        let plugin_dirs = std::fs::read_dir(&stage_path).map_err(|e| format!("read {}: {e}", stage_path.display()))?;
+        let stage_name = stage_path
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or("?")
+            .to_string();
+        let plugin_dirs = std::fs::read_dir(&stage_path)
+            .map_err(|e| format!("read {}: {e}", stage_path.display()))?;
         for plugin_entry in plugin_dirs.flatten() {
             let plugin_path = plugin_entry.path();
             if !plugin_path.is_dir() {
@@ -115,9 +121,17 @@ pub fn generate_bundle_manifest(
             if !manifest_path.exists() {
                 continue;
             }
-            let where_ = format!("{stage_name}/{}", plugin_path.file_name().and_then(|s| s.to_str()).unwrap_or("?"));
-            let json = std::fs::read_to_string(&manifest_path).map_err(|e| format!("read {where_}: {e}"))?;
-            let raw: RawManifest = serde_json::from_str(&json).map_err(|e| format!("parse {where_}: {e}"))?;
+            let where_ = format!(
+                "{stage_name}/{}",
+                plugin_path
+                    .file_name()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("?")
+            );
+            let json = std::fs::read_to_string(&manifest_path)
+                .map_err(|e| format!("read {where_}: {e}"))?;
+            let raw: RawManifest =
+                serde_json::from_str(&json).map_err(|e| format!("parse {where_}: {e}"))?;
 
             if raw.build.as_ref().is_some_and(|b| b.dev_only) && !dev {
                 continue;
@@ -127,7 +141,10 @@ pub fn generate_bundle_manifest(
             }
             require_valid_plugin_id(&raw.id)?;
             if let Some(prev) = seen.get(&raw.id) {
-                return Err(format!("Internal plugins {prev} and {where_} share the ID \"{}\"", raw.id));
+                return Err(format!(
+                    "Internal plugins {prev} and {where_} share the ID \"{}\"",
+                    raw.id
+                ));
             }
             seen.insert(raw.id.clone(), where_.clone());
 
@@ -135,22 +152,34 @@ pub fn generate_bundle_manifest(
             if let Some(v) = &raw.enabled_by_default {
                 let ok = matches!(v, serde_json::Value::Bool(_)) || v.as_str() == Some("dev");
                 if !ok {
-                    return Err(format!("Internal plugin \"{}\" has an invalid enabledByDefault: {v}", raw.id));
+                    return Err(format!(
+                        "Internal plugin \"{}\" has an invalid enabledByDefault: {v}",
+                        raw.id
+                    ));
                 }
             }
             // Validate defaultSource type (true or object).
             if let Some(v) = &raw.default_source {
                 let ok = *v == serde_json::Value::Bool(true) || v.is_object();
                 if !ok {
-                    return Err(format!("Internal plugin \"{}\" has an invalid defaultSource: {v}", raw.id));
+                    return Err(format!(
+                        "Internal plugin \"{}\" has an invalid defaultSource: {v}",
+                        raw.id
+                    ));
                 }
             }
             if raw.version.is_some() && raw.default_source.is_none() {
-                return Err(format!("Internal plugin \"{}\" sets a version, but only stubs (with defaultSource) can", raw.id));
+                return Err(format!(
+                    "Internal plugin \"{}\" sets a version, but only stubs (with defaultSource) can",
+                    raw.id
+                ));
             }
             if let Some(v) = &raw.version {
                 if Version::parse(v).is_err() {
-                    return Err(format!("Internal plugin \"{}\" has an invalid version: {v}", raw.id));
+                    return Err(format!(
+                        "Internal plugin \"{}\" has an invalid version: {v}",
+                        raw.id
+                    ));
                 }
             }
 
@@ -163,9 +192,19 @@ pub fn generate_bundle_manifest(
                     held: false,
                 }),
                 Some(serde_json::Value::Object(o)) => Some(PluginSource {
-                    repo: o.get("repo").and_then(|x| x.as_str()).map(|s| s.to_string()),
-                    hash: o.get("hash").and_then(|x| x.as_str()).map(|s| s.to_string()),
-                    channel: o.get("channel").and_then(|x| x.as_str()).unwrap_or("latest").to_string(),
+                    repo: o
+                        .get("repo")
+                        .and_then(|x| x.as_str())
+                        .map(|s| s.to_string()),
+                    hash: o
+                        .get("hash")
+                        .and_then(|x| x.as_str())
+                        .map(|s| s.to_string()),
+                    channel: o
+                        .get("channel")
+                        .and_then(|x| x.as_str())
+                        .unwrap_or("latest")
+                        .to_string(),
                     held: o.get("held").and_then(|x| x.as_bool()).unwrap_or(false),
                 }),
                 _ => None,
@@ -177,7 +216,13 @@ pub fn generate_bundle_manifest(
                 if let Some(v) = &dep.version {
                     crate::version::VersionRange::parse(v)?;
                 }
-                deps.insert(dep_id, crate::manifest::BundleDependency { version: dep.version, optional: dep.optional });
+                deps.insert(
+                    dep_id,
+                    crate::manifest::BundleDependency {
+                        version: dep.version,
+                        optional: dep.optional,
+                    },
+                );
             }
 
             plugins.push(BundlePlugin {
@@ -189,7 +234,11 @@ pub fn generate_bundle_manifest(
                 name: raw.name,
                 description: raw.description,
                 author: raw.author.as_ref().map(|v| contributor_str(v)),
-                contributors: raw.contributors.iter().map(|v| contributor_str(v)).collect(),
+                contributors: raw
+                    .contributors
+                    .iter()
+                    .map(|v| contributor_str(v))
+                    .collect(),
                 icon: raw.icon,
                 default_source,
             });
@@ -197,7 +246,11 @@ pub fn generate_bundle_manifest(
     }
 
     plugins.sort_by(|a, b| a.id.cmp(&b.id));
-    Ok(BundleManifest { format: 1, version: version.to_string(), plugins })
+    Ok(BundleManifest {
+        format: 1,
+        version: version.to_string(),
+        plugins,
+    })
 }
 
 #[cfg(test)]
@@ -216,9 +269,24 @@ mod tests {
         let base = std::env::temp_dir().join(format!("valenced-bundle-{}", std::process::id()));
         let _ = fs::remove_dir_all(&base);
         fs::create_dir_all(&base).unwrap();
-        write_manifest(&base, "preinit", "hello", r#"{"id":"com.example.hello","enabledByDefault":true,"dependencies":{"valenced.api":{}}}"#);
-        write_manifest(&base, "start", "world", r#"{"id":"com.example.world","dependencies":{}}"#);
-        write_manifest(&base, "preinit", "devonly", r#"{"id":"com.example.dev","build":{"devOnly":true},"dependencies":{}}"#);
+        write_manifest(
+            &base,
+            "preinit",
+            "hello",
+            r#"{"id":"com.example.hello","enabledByDefault":true,"dependencies":{"valenced.api":{}}}"#,
+        );
+        write_manifest(
+            &base,
+            "start",
+            "world",
+            r#"{"id":"com.example.world","dependencies":{}}"#,
+        );
+        write_manifest(
+            &base,
+            "preinit",
+            "devonly",
+            r#"{"id":"com.example.dev","build":{"devOnly":true},"dependencies":{}}"#,
+        );
 
         let m = generate_bundle_manifest(&base, "1.0.0", false, None).unwrap();
         assert_eq!(m.plugins.len(), 2);
@@ -241,8 +309,18 @@ mod tests {
         let base = std::env::temp_dir().join(format!("valenced-bundle-dup-{}", std::process::id()));
         let _ = fs::remove_dir_all(&base);
         fs::create_dir_all(&base).unwrap();
-        write_manifest(&base, "preinit", "a", r#"{"id":"com.example.dup","dependencies":{}}"#);
-        write_manifest(&base, "start", "b", r#"{"id":"com.example.dup","dependencies":{}}"#);
+        write_manifest(
+            &base,
+            "preinit",
+            "a",
+            r#"{"id":"com.example.dup","dependencies":{}}"#,
+        );
+        write_manifest(
+            &base,
+            "start",
+            "b",
+            r#"{"id":"com.example.dup","dependencies":{}}"#,
+        );
         assert!(generate_bundle_manifest(&base, "1.0.0", false, None).is_err());
         let _ = fs::remove_dir_all(&base);
     }

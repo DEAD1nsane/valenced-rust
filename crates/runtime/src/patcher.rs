@@ -79,8 +79,20 @@ impl Patcher {
         let mut inner = self.inner.lock().unwrap();
         let id = inner.next_id;
         inner.next_id += 1;
-        inner.hooks.insert(id, Hook { id, target: target.to_string(), method: method.to_string(), kind, label: label.to_string() });
-        Unpatcher { id, patcher: self.inner.clone() }
+        inner.hooks.insert(
+            id,
+            Hook {
+                id,
+                target: target.to_string(),
+                method: method.to_string(),
+                kind,
+                label: label.to_string(),
+            },
+        );
+        Unpatcher {
+            id,
+            patcher: self.inner.clone(),
+        }
     }
 
     /// `before(obj, 'method', handler)` — runs before the original,
@@ -106,13 +118,21 @@ impl Patcher {
     pub fn hooks_for(&self, target: &str, method: &str) -> (Vec<Hook>, Option<Hook>, Vec<Hook>) {
         self.calls.fetch_add(1, Ordering::Relaxed);
         let inner = self.inner.lock().unwrap();
-        let mut befores: Vec<_> = inner.hooks.values()
+        let mut befores: Vec<_> = inner
+            .hooks
+            .values()
             .filter(|h| h.target == target && h.method == method && h.kind == HookKind::Before)
-            .cloned().collect();
-        let mut afters: Vec<_> = inner.hooks.values()
+            .cloned()
+            .collect();
+        let mut afters: Vec<_> = inner
+            .hooks
+            .values()
             .filter(|h| h.target == target && h.method == method && h.kind == HookKind::After)
-            .cloned().collect();
-        let instead = inner.hooks.values()
+            .cloned()
+            .collect();
+        let instead = inner
+            .hooks
+            .values()
             .filter(|h| h.target == target && h.method == method && h.kind == HookKind::Instead)
             .max_by_key(|h| h.id)
             .cloned();

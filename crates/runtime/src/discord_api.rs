@@ -14,7 +14,11 @@ pub trait HostBridge: Send + Sync {
     /// Read a Discord module by name (e.g. `main_tabs_v2`).
     fn module(&self, name: &str) -> Option<serde_json::Value>;
     /// Call a native method (`valenced.alertError`, …).
-    fn call_native(&self, method: &str, args: serde_json::Value) -> Result<serde_json::Value, String>;
+    fn call_native(
+        &self,
+        method: &str,
+        args: serde_json::Value,
+    ) -> Result<serde_json::Value, String>;
     /// List assets (icons, fonts) available to plugins.
     fn asset_names(&self) -> Vec<String>;
     /// Storage root for this plugin in the active slot.
@@ -36,7 +40,11 @@ impl DiscordApi {
         self.host.module(name)
     }
 
-    pub fn call_native(&self, method: &str, args: serde_json::Value) -> Result<serde_json::Value, String> {
+    pub fn call_native(
+        &self,
+        method: &str,
+        args: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
         self.host.call_native(method, args)
     }
 
@@ -46,8 +54,12 @@ impl DiscordApi {
 
     /// `valenced.discord.native.FileModule.writeFile` vended through the host.
     pub fn write_file(&self, collection: &str, path: &str, contents: &str) -> Result<(), String> {
-        self.host.call_native("valenced.discord.native.FileModule.writeFile",
-            serde_json::json!({ "collection": collection, "path": path, "contents": contents })).map(|_| ())
+        self.host
+            .call_native(
+                "valenced.discord.native.FileModule.writeFile",
+                serde_json::json!({ "collection": collection, "path": path, "contents": contents }),
+            )
+            .map(|_| ())
     }
 }
 
@@ -64,7 +76,8 @@ impl ModulesApi {
     }
 
     pub fn require(&self, name: &str) -> Result<serde_json::Value, String> {
-        self.get(name).ok_or_else(|| format!("Module not found: {name}"))
+        self.get(name)
+            .ok_or_else(|| format!("Module not found: {name}"))
     }
 }
 
@@ -77,7 +90,9 @@ pub struct ReactApi {
 
 impl ReactApi {
     pub fn new(shell: impl Into<String>) -> Self {
-        Self { shell: shell.into() }
+        Self {
+            shell: shell.into(),
+        }
     }
 }
 
@@ -93,7 +108,11 @@ impl HostBridge for StubHost {
     fn module(&self, name: &str) -> Option<serde_json::Value> {
         self.modules.get(name).cloned()
     }
-    fn call_native(&self, method: &str, args: serde_json::Value) -> Result<serde_json::Value, String> {
+    fn call_native(
+        &self,
+        method: &str,
+        args: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
         Ok(serde_json::Value::Null)
     }
     fn asset_names(&self) -> Vec<String> {
@@ -111,11 +130,15 @@ mod tests {
     #[test]
     fn stub_host() {
         let mut host = StubHost::default();
-        host.modules.insert("main_tabs_v2".into(), serde_json::json!({ "ok": true }));
+        host.modules
+            .insert("main_tabs_v2".into(), serde_json::json!({ "ok": true }));
         let disc = DiscordApi::new(Arc::new(host));
         assert!(disc.module("main_tabs_v2").is_some());
         assert!(disc.module("missing").is_none());
-        let mods = ModulesApi { discord: disc.clone(), debug_module_lookups: false };
+        let mods = ModulesApi {
+            discord: disc.clone(),
+            debug_module_lookups: false,
+        };
         assert!(mods.require("main_tabs_v2").is_ok());
         assert!(mods.require("missing").is_err());
     }

@@ -1,8 +1,8 @@
-# Android NDK linker (set ANDROID_NDK_HOME to your NDK, e.g. ~/Android/Sdk/ndk/26.1.10909125)
-# Then: cargo build -p valenced-ffi --release --target aarch64-linux-android
-# The default Termux host target is unaffected — this only applies when building for Android.
-[target.aarch64-linux-android]
-linker = "aarch64-linux-android34-clang"
-
-# iOS: no linker override needed; use
-#   cargo build -p valenced-ffi --release --target aarch64-apple-ios
+# Android NDK cross-build (desktop only — do NOT set a linker here or Termux
+# host builds break, since Termux itself is aarch64-linux-android).
+# On a desktop with the NDK, run e.g.:
+#   ANDROID_NDK_HOME=~/Android/Sdk/ndk/26.1.10909125 \
+#     cargo build -p valenced-ffi --release --target aarch64-linux-android
+# with the NDK's clang wrapper on PATH.
+#
+# iOS: cargo build -p valenced-ffi --release --target aarch64-apple-ios

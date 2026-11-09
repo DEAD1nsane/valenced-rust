@@ -27,9 +27,20 @@ pub struct FileSystemHost {
 }
 
 impl FileSystemHost {
-    pub fn new(paths: PluginPaths, slot_id: &str, modules: HashMap<String, serde_json::Value>, assets: Vec<String>) -> Self {
+    pub fn new(
+        paths: PluginPaths,
+        slot_id: &str,
+        modules: HashMap<String, serde_json::Value>,
+        assets: Vec<String>,
+    ) -> Self {
         let data_dir = paths.data_dir.clone();
-        Self { paths, slot_id: slot_id.to_string(), modules, assets, data_dir }
+        Self {
+            paths,
+            slot_id: slot_id.to_string(),
+            modules,
+            assets,
+            data_dir,
+        }
     }
 
     /// Load `modules.json` + `assets.json` from `data_dir` when present.
@@ -57,11 +68,21 @@ impl HostBridge for FileSystemHost {
         self.modules.get(name).cloned()
     }
 
-    fn call_native(&self, method: &str, args: serde_json::Value) -> Result<serde_json::Value, String> {
+    fn call_native(
+        &self,
+        method: &str,
+        args: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
         match method {
             "valenced.discord.native.FileModule.writeFile" => {
-                let collection = args.get("collection").and_then(|v| v.as_str()).unwrap_or("documents");
-                let path = args.get("path").and_then(|v| v.as_str()).unwrap_or("valenced/loader.json");
+                let collection = args
+                    .get("collection")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("documents");
+                let path = args
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("valenced/loader.json");
                 let contents = args.get("contents").and_then(|v| v.as_str()).unwrap_or("");
                 let target = self.data_dir.join(collection).join(path);
                 valenced_core::fs_util::atomic_write_utf8(&target, contents)
@@ -77,7 +98,11 @@ impl HostBridge for FileSystemHost {
     }
 
     fn storage_path(&self, plugin_id: &str) -> String {
-        self.paths.storage_for(&self.slot_id).join(plugin_id).to_string_lossy().into_owned()
+        self.paths
+            .storage_for(&self.slot_id)
+            .join(plugin_id)
+            .to_string_lossy()
+            .into_owned()
     }
 }
 
@@ -90,8 +115,16 @@ mod tests {
     #[test]
     fn storage_path_via_paths() {
         let paths = PluginPaths::new("/tmp/data");
-        let host = FileSystemHost::new(paths.clone(), "default", HashMap::new(), vec!["AtIcon".into()]);
-        assert!(host.storage_path("com.example.a").contains("storage/default/com.example.a"));
+        let host = FileSystemHost::new(
+            paths.clone(),
+            "default",
+            HashMap::new(),
+            vec!["AtIcon".into()],
+        );
+        assert!(
+            host.storage_path("com.example.a")
+                .contains("storage/default/com.example.a")
+        );
         let unscoped = UnscopedApi::new(Arc::new(DiscordApi::new(Arc::new(host))));
         assert_eq!(unscoped.discord.asset_names(), vec!["AtIcon"]);
     }
@@ -104,7 +137,8 @@ mod tests {
         paths.ensure_layout().unwrap();
         let host = FileSystemHost::new(paths.clone(), "default", HashMap::new(), vec![]);
         let disc = DiscordApi::new(Arc::new(host));
-        disc.write_file("documents", "valenced/loader.json", r#"{"a":1}"#).unwrap();
+        disc.write_file("documents", "valenced/loader.json", r#"{"a":1}"#)
+            .unwrap();
         let target = paths.data_dir.join("documents/valenced/loader.json");
         assert_eq!(std::fs::read_to_string(&target).unwrap(), r#"{"a":1}"#);
         let _ = std::fs::remove_dir_all(&dir);

@@ -33,8 +33,17 @@ impl WasmPlugin {
             id: manifest.id.clone(),
             message: "dist.wasm missing (script-only plugin needs js-compat)".into(),
         })?;
-        let plugin_manifest = manifest.to_plugin_manifest().map_err(|e| RuntimeError::Plugin { id: manifest.id.clone(), message: e })?;
-        Ok(Self { manifest: plugin_manifest, wasm_path: wasm_path.clone(), size: None })
+        let plugin_manifest = manifest
+            .to_plugin_manifest()
+            .map_err(|e| RuntimeError::Plugin {
+                id: manifest.id.clone(),
+                message: e,
+            })?;
+        Ok(Self {
+            manifest: plugin_manifest,
+            wasm_path: wasm_path.clone(),
+            size: None,
+        })
     }
 }
 
@@ -49,7 +58,10 @@ pub struct WasmHost {
 
 impl WasmHost {
     pub fn new(plugin_id: impl Into<String>) -> Self {
-        Self { plugin_id: plugin_id.into(), log_level: 2 }
+        Self {
+            plugin_id: plugin_id.into(),
+            log_level: 2,
+        }
     }
 
     pub fn log(&self, level: u8, msg: &str) {
@@ -65,7 +77,10 @@ impl WasmHost {
 pub fn stage(wasm: &WasmPlugin) -> Result<WasmHost, RuntimeError> {
     // Cheap sanity: path must look like a WASM artifact.
     if !wasm.wasm_path.ends_with(".wasm") {
-        return Err(RuntimeError::Plugin { id: wasm.manifest.id.clone(), message: "dist.wasm must end with .wasm".into() });
+        return Err(RuntimeError::Plugin {
+            id: wasm.manifest.id.clone(),
+            message: "dist.wasm must end with .wasm".into(),
+        });
     }
     Ok(WasmHost::new(wasm.manifest.id.clone()))
 }
@@ -76,7 +91,10 @@ pub fn stage(wasm: &WasmPlugin) -> Result<WasmHost, RuntimeError> {
     // Import `wasmi::Engine` etc. — kept behind the flag so default builds
     // don't pull the interpreter.
     if !wasm.wasm_path.ends_with(".wasm") {
-        return Err(RuntimeError::Plugin { id: wasm.manifest.id.clone(), message: "dist.wasm must end with .wasm".into() });
+        return Err(RuntimeError::Plugin {
+            id: wasm.manifest.id.clone(),
+            message: "dist.wasm must end with .wasm".into(),
+        });
     }
     Ok(WasmHost::new(wasm.manifest.id.clone()))
 }

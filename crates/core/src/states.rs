@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-use crate::fs_util::{read_or_null, atomic_write_bytes};
+use crate::fs_util::{atomic_write_bytes, read_or_null};
 
 /// Lifecycle flags. Only bits matter for persistence.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -74,16 +74,28 @@ pub fn flags_to_bitmask(flags: &HashSet<PluginFlag>) -> u32 {
 }
 
 /// `{"enabled": true, ...}` as the JS bundle expects.
-pub fn flags_to_js_payload(flags: &HashSet<PluginFlag>) -> serde_json::Map<String, serde_json::Value> {
+pub fn flags_to_js_payload(
+    flags: &HashSet<PluginFlag>,
+) -> serde_json::Map<String, serde_json::Value> {
     let mut map = serde_json::Map::new();
-    for flag in [PluginFlag::Enabled, PluginFlag::RequiredByUser, PluginFlag::PendingReload, PluginFlag::StartedLate] {
-        map.insert(flag.js_name().to_string(), serde_json::Value::Bool(flags.contains(&flag)));
+    for flag in [
+        PluginFlag::Enabled,
+        PluginFlag::RequiredByUser,
+        PluginFlag::PendingReload,
+        PluginFlag::StartedLate,
+    ] {
+        map.insert(
+            flag.js_name().to_string(),
+            serde_json::Value::Bool(flags.contains(&flag)),
+        );
     }
     map
 }
 
 /// Inverse of [`flags_to_js_payload`].
-pub fn flags_from_js_payload(payload: &serde_json::Map<String, serde_json::Value>) -> HashSet<PluginFlag> {
+pub fn flags_from_js_payload(
+    payload: &serde_json::Map<String, serde_json::Value>,
+) -> HashSet<PluginFlag> {
     let mut out = HashSet::new();
     for name in ["enabled", "requiredByUser", "pendingReload", "startedLate"] {
         if payload.get(name) == Some(&serde_json::Value::Bool(true)) {
@@ -106,7 +118,9 @@ pub fn require_valid_slot_id(id: &str) -> Result<(), String> {
         return Ok(());
     }
     let ok = !id.is_empty()
-        && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '_' || c == '-')
+        && id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '_' || c == '-')
         && !id.contains("..")
         && !id.starts_with('.');
     if ok {
@@ -119,7 +133,9 @@ pub fn require_valid_slot_id(id: &str) -> Result<(), String> {
 const SLOT_SIDECAR_SUFFIXES: &[&str] = &["tmp", "bak", "corrupt"];
 
 pub fn is_slot_file_name(name: &str) -> bool {
-    SLOT_SIDECAR_SUFFIXES.iter().all(|suf| !name.ends_with(&format!(".{suf}")))
+    SLOT_SIDECAR_SUFFIXES
+        .iter()
+        .all(|suf| !name.ends_with(&format!(".{suf}")))
 }
 
 /// On-disk representation of one slot file:
@@ -144,14 +160,24 @@ pub struct PluginStateSlot {
 impl PluginStateSlot {
     pub fn ephemeral(id: &str) -> Self {
         require_valid_slot_id(id).expect("slot id");
-        Self { id: id.to_string(), persistent: false, file: None, flags: HashMap::new() }
+        Self {
+            id: id.to_string(),
+            persistent: false,
+            file: None,
+            flags: HashMap::new(),
+        }
     }
 
     pub fn persistent_in(id: &str, slots_dir: &Path) -> Self {
         require_valid_slot_id(id).expect("slot id");
         let file = slots_dir.join(id);
         let initial = load_slot_file(&file);
-        Self { id: id.to_string(), persistent: true, file: Some(file), flags: initial }
+        Self {
+            id: id.to_string(),
+            persistent: true,
+            file: Some(file),
+            flags: initial,
+        }
     }
 
     fn load(&mut self) {
@@ -174,7 +200,9 @@ impl PluginStateSlot {
     }
 
     pub fn is_plugin_enabled(&self, plugin_id: &str) -> bool {
-        self.flags.get(plugin_id).is_some_and(|f| f.contains(&PluginFlag::Enabled))
+        self.flags
+            .get(plugin_id)
+            .is_some_and(|f| f.contains(&PluginFlag::Enabled))
     }
 
     /// Write an entry. Returns whether anything changed.
@@ -200,7 +228,10 @@ impl PluginStateSlot {
     }
 
     pub fn to_bitmask_map(&self) -> SlotFile {
-        self.flags.iter().map(|(k, v)| (k.clone(), flags_to_bitmask(v))).collect()
+        self.flags
+            .iter()
+            .map(|(k, v)| (k.clone(), flags_to_bitmask(v)))
+            .collect()
     }
 
     /// Persist the whole slot. No-op for ephemeral slots.
@@ -228,7 +259,9 @@ fn load_slot_file(path: &Path) -> HashMap<String, HashSet<PluginFlag>> {
         Ok(r) => r,
         Err(_) => return HashMap::new(), // corrupt file reads as empty (see Files.kt)
     };
-    raw.into_iter().map(|(k, mask)| (k, flags_from_bitmask(mask))).collect()
+    raw.into_iter()
+        .map(|(k, mask)| (k, flags_from_bitmask(mask)))
+        .collect()
 }
 
 /// Active slot pointer file (`states/active`). Empty/missing means `default`.
@@ -239,7 +272,11 @@ pub fn read_active_slot(states_dir: &Path) -> String {
         Err(_) => return "default".to_string(),
     };
     let s = String::from_utf8_lossy(&bytes).trim().to_string();
-    if s.is_empty() { "default".to_string() } else { s }
+    if s.is_empty() {
+        "default".to_string()
+    } else {
+        s
+    }
 }
 
 pub fn write_active_slot(states_dir: &Path, slot_id: &str) -> std::io::Result<()> {
@@ -265,7 +302,9 @@ mod tests {
 
     #[test]
     fn bitmask_roundtrip() {
-        let flags: HashSet<_> = [PluginFlag::Enabled, PluginFlag::RequiredByUser].into_iter().collect();
+        let flags: HashSet<_> = [PluginFlag::Enabled, PluginFlag::RequiredByUser]
+            .into_iter()
+            .collect();
         assert_eq!(flags_to_bitmask(&flags), 0b11);
         assert_eq!(flags_from_bitmask(0b11), flags);
     }

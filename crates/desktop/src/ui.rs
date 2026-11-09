@@ -1,33 +1,43 @@
-//! Minimal GPUI shell (behind `--features gpui`).
+//! Minimal GPUI shell (GPUI 0.2, desktop-only).
+//!
+//! Mirrors the canonical `gpui-0.2` example shape (`examples/hello_world.rs`):
+//! `Application::run` -> `cx.open_window` -> root view with `Render` + `div()`.
 //!
 //! Phoenix-style: native GPU window, no Electron/WebView. Shows the active
 //! theme name + first N semantic colors, plus the plugin list from
-//! `Registry::load_from_dist`. Headless `cargo test` never builds this.
-
-#[cfg(feature = "gpui")]
-use gpui::{actions, div, Context, FocusHandle, HttpClient, ParentElement, Styled, Window, WindowOptions, Styled as _, Menu, Model, Subscription, Application, Focusable, KeyBinding, Titlebar, InteractiveElement, StatefulInteractiveElement, scrollable, WindowHandler, WindowHandle, IntoElement, AnyElement, prelude::*};
+//! `Registry::load_from_dist`. Headless `cargo test` (default features) never
+//! builds this module; see `main.rs` (`mod ui` is `#[cfg(feature = "gpui")]`).
+//!
+//! Desktop-only builds:
+//! ```text
+//! cargo run -p valenced-desktop --features gpui    # Linux glibc (x11/wayland)
+//! ```
+use gpui::{
+    App, Application, Bounds, Context, Window, WindowBounds, WindowOptions, div, prelude::*, px,
+    size,
+};
 
 /// Placeholder view. Real Phoenix parity (server list, channels, DMs)
 /// is out of scope for the Valenced shell — this proves windowing +
 /// theme rendering from the shared Rust core.
-#[cfg(feature = "gpui")]
 pub struct ThemeView {
-    focus_handle: FocusHandle,
     theme_name: String,
     color_lines: Vec<String>,
     plugin_lines: Vec<String>,
 }
 
-#[cfg(feature = "gpui")]
 impl ThemeView {
-    pub fn new(cx: &mut Context<Self>, theme_name: String, color_lines: Vec<String>, plugin_lines: Vec<String>) -> Self {
-        Self { focus_handle: cx.focus_handle(), theme_name, color_lines, plugin_lines }
+    pub fn new(theme_name: String, color_lines: Vec<String>, plugin_lines: Vec<String>) -> Self {
+        Self {
+            theme_name,
+            color_lines,
+            plugin_lines,
+        }
     }
 }
 
-#[cfg(feature = "gpui")]
 impl Render for ThemeView {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
         let colors = self.color_lines.clone();
         let plugins = self.plugin_lines.clone();
         div()
@@ -44,23 +54,19 @@ impl Render for ThemeView {
     }
 }
 
-#[cfg(feature = "gpui")]
-impl Focusable for ThemeView {
-    fn focus_handle(&self, _cx: &gpui::App) -> FocusHandle {
-        self.focus_handle.clone()
-    }
-}
-
 /// Open the shell window. `theme_name`/`color_lines` come from
 /// `valenced_core::theme::Theme`; `plugin_lines` from `Registry`.
-#[cfg(feature = "gpui")]
 pub fn run(theme_name: String, color_lines: Vec<String>, plugin_lines: Vec<String>) {
-    let app = Application::new();
-    let _ = app.run(|cx| {
-        let model = cx.new(|cx| ThemeView::new(cx, theme_name, color_lines, plugin_lines));
-        cx.open_window(WindowOptions::default(), |_, cx| {
-            cx.new(|cx| ThemeView::new(cx, "Valenced".into(), vec![], vec![]))
-        })
+    Application::new().run(|cx: &mut App| {
+        let bounds = Bounds::centered(None, size(px(800.0), px(600.0)), cx);
+        cx.open_window(
+            WindowOptions {
+                window_bounds: Some(WindowBounds::Windowed(bounds)),
+                ..Default::default()
+            },
+            |_, cx| cx.new(|_| ThemeView::new(theme_name, color_lines, plugin_lines)),
+        )
         .expect("open window");
+        cx.activate(true);
     });
 }

@@ -78,7 +78,14 @@ pub struct PluginContext {
 
 impl PluginContext {
     pub fn new(manifest: PluginManifest, lifecycle: Lifecycle, unscoped: UnscopedApi) -> Self {
-        Self { manifest, lifecycle, unscoped, decorations: HashMap::new(), cleanups: Vec::new(), unpatchers: Vec::new() }
+        Self {
+            manifest,
+            lifecycle,
+            unscoped,
+            decorations: HashMap::new(),
+            cleanups: Vec::new(),
+            unpatchers: Vec::new(),
+        }
     }
 
     /// `cleanup(fn)` — register a callback for `stop`.
@@ -90,7 +97,10 @@ impl PluginContext {
     /// In TS the decorator mutates `plugin.api`; here it stores a JSON blob
     /// the dependent reads with [`PluginContext::extension`].
     pub fn decorate(&mut self, plugin_id: &str, key: &str, value: serde_json::Value) {
-        let entry = self.decorations.entry(plugin_id.to_string()).or_insert_with(|| serde_json::json!({}));
+        let entry = self
+            .decorations
+            .entry(plugin_id.to_string())
+            .or_insert_with(|| serde_json::json!({}));
         if let Some(obj) = entry.as_object_mut() {
             obj.insert(key.to_string(), value);
         }

@@ -31,7 +31,11 @@ impl<T> StringResultExtDesktop<T> for Result<T, String> {
 }
 
 #[derive(Parser, Debug)]
-#[command(name = "valenced-desktop", version, about = "Valenced desktop shell (GPUI / headless)")]
+#[command(
+    name = "valenced-desktop",
+    version,
+    about = "Valenced desktop shell (GPUI / headless)"
+)]
 struct Args {
     #[command(subcommand)]
     command: Commands,
@@ -54,7 +58,8 @@ fn main() -> Result<()> {
     let args = Args::parse();
     match args.command {
         Commands::ThemeReport { path } => {
-            let json = std::fs::read_to_string(&path).with_context(|| format!("read {}", path.display()))?;
+            let json = std::fs::read_to_string(&path)
+                .with_context(|| format!("read {}", path.display()))?;
             let t = parse_theme(&json).with_context_string("invalid theme")?;
             println!("{}", serde_json::to_string_pretty(&t.report())?);
             Ok(())
@@ -64,8 +69,12 @@ fn main() -> Result<()> {
             let loader_json = serde_json::json!({
                 "customLoadUrl": { "enabled": true, "url": format!("http://{host}:4040/valenced.bundle"), "manifestUrl": format!("http://{host}:4040/manifest.json") }
             });
-            println!("// Evaluate in Discord > Settings > Developer > Evaluate JavaScript (debug loaders only):");
-            println!("valenced.discord.native.FileModule.writeFile(\"documents\", \"valenced/loader.json\", JSON.stringify({{loader}}), \"utf8\");");
+            println!(
+                "// Evaluate in Discord > Settings > Developer > Evaluate JavaScript (debug loaders only):"
+            );
+            println!(
+                "valenced.discord.native.FileModule.writeFile(\"documents\", \"valenced/loader.json\", JSON.stringify({{loader}}), \"utf8\");"
+            );
             println!("// with:");
             println!("// {loader_json}");
             Ok(())
@@ -73,14 +82,20 @@ fn main() -> Result<()> {
         Commands::Run => {
             #[cfg(feature = "gpui")]
             {
-                let theme_name = std::env::var("VALENCED_THEME").unwrap_or_else(|_| "Valenced".into());
-                let msgs = vec![format!("Theme: {theme_name}"), "See docs/PHOENIX_NOTES.md".into()];
+                let theme_name =
+                    std::env::var("VALENCED_THEME").unwrap_or_else(|_| "Valenced".into());
+                let msgs = vec![
+                    format!("Theme: {theme_name}"),
+                    "See docs/PHOENIX_NOTES.md".into(),
+                ];
                 ui::run(theme_name, msgs, vec![]);
                 Ok(())
             }
             #[cfg(not(feature = "gpui"))]
             {
-                eprintln!("GPUI shell not built. Re-run with: cargo run -p valenced-desktop --features gpui");
+                eprintln!(
+                    "GPUI shell not built. Re-run with: cargo run -p valenced-desktop --features gpui"
+                );
                 eprintln!("Headless modes (theme-report, dev-snippet) work on this build.");
                 Ok(())
             }

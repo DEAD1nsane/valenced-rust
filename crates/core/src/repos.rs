@@ -7,7 +7,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::manifest::{validated_plugin_icon, require_valid_plugin_id, ExternalDependency};
+use crate::manifest::{ExternalDependency, require_valid_plugin_id, validated_plugin_icon};
 use crate::version::{Version, VersionRange};
 
 /// The supported repository index format version.
@@ -66,7 +66,9 @@ fn is_absolute_http_url(url: &str) -> bool {
 }
 
 fn is_sha256_hex(s: &str) -> bool {
-    s.len() == 64 && s.chars().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase())
+    s.len() == 64
+        && s.chars()
+            .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase())
 }
 
 /// Returns `Ok(())` if the entry is valid, else a human-readable problem.
@@ -105,7 +107,8 @@ pub fn parse_repo_index(json: &str, repo_url: &str) -> Result<(RepoIndex, Vec<St
         warnings.push(format!("Repository '{repo_url}': {msg}"));
     };
 
-    let raw: RepoIndex = serde_json::from_str(json).map_err(|e| format!("Unable to parse repo index JSON: {e}"))?;
+    let raw: RepoIndex =
+        serde_json::from_str(json).map_err(|e| format!("Unable to parse repo index JSON: {e}"))?;
     if raw.format != REPO_INDEX_FORMAT {
         return Err(format!(
             "Repository '{repo_url}' has unsupported index format {} (supported: {REPO_INDEX_FORMAT})",
@@ -116,27 +119,41 @@ pub fn parse_repo_index(json: &str, repo_url: &str) -> Result<(RepoIndex, Vec<St
     let mut plugins: HashMap<String, RepoPlugin> = HashMap::new();
     for (id, plugin) in &raw.plugins {
         if require_valid_plugin_id(id).is_err() {
-            warn(&mut warnings, format!("dropped plugin entry '{id}': invalid plugin ID"));
+            warn(
+                &mut warnings,
+                format!("dropped plugin entry '{id}': invalid plugin ID"),
+            );
             continue;
         }
 
         let mut versions: HashMap<String, RepoVersion> = HashMap::new();
         for (version_key, version) in &plugin.versions {
             if let Err(problem) = validate_repo_version(version_key, version) {
-                warn(&mut warnings, format!("dropped version '{id}@{version_key}': {problem}"));
+                warn(
+                    &mut warnings,
+                    format!("dropped version '{id}@{version_key}': {problem}"),
+                );
                 continue;
             }
             versions.insert(version_key.clone(), version.clone());
         }
         if versions.is_empty() {
-            warn(&mut warnings, format!("dropped plugin entry '{id}': no valid versions"));
+            warn(
+                &mut warnings,
+                format!("dropped plugin entry '{id}': no valid versions"),
+            );
             continue;
         }
 
         let mut channels: HashMap<String, String> = HashMap::new();
         for (channel, target) in &plugin.channels {
             if !versions.contains_key(target) {
-                warn(&mut warnings, format!("dropped channel '{id}/{channel}': it points to missing version '{target}'"));
+                warn(
+                    &mut warnings,
+                    format!(
+                        "dropped channel '{id}/{channel}': it points to missing version '{target}'"
+                    ),
+                );
                 continue;
             }
             channels.insert(channel.clone(), target.clone());
@@ -169,7 +186,11 @@ pub fn parse_repo_index(json: &str, repo_url: &str) -> Result<(RepoIndex, Vec<St
 }
 
 /// Test helper: resolve the effective version for a channel (or newest).
-pub fn version_for_channel(index: &RepoIndex, plugin_id: &str, channel: &str) -> Option<(Version, RepoVersion)> {
+pub fn version_for_channel(
+    index: &RepoIndex,
+    plugin_id: &str,
+    channel: &str,
+) -> Option<(Version, RepoVersion)> {
     let plugin = index.plugins.get(plugin_id)?;
     if let Some(target) = plugin.channels.get(channel) {
         let rv = plugin.versions.get(target)?;

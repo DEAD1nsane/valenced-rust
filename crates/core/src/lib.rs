@@ -22,10 +22,10 @@ pub mod theme;
 pub mod version;
 
 pub use manifest::{
-    BundleManifest, ExternalManifest, PluginManifest, API_DEPENDENCY_ID, DISCORD_DEPENDENCY_ID,
-    MANIFEST_FILE, PluginSource,
+    API_DEPENDENCY_ID, BundleManifest, DISCORD_DEPENDENCY_ID, ExternalManifest, MANIFEST_FILE,
+    PluginManifest, PluginSource,
 };
-pub use repos::{RepoIndex, REPO_CHANNEL_LATEST, REPO_INDEX_FORMAT};
+pub use repos::{REPO_CHANNEL_LATEST, REPO_INDEX_FORMAT, RepoIndex};
 pub use resolver::{InstallPlan, PlannedAction, ResolveRequest, resolve_install};
 pub use states::{PluginFlag, PluginStateSlot};
 pub use theme::{Theme, parse_theme};

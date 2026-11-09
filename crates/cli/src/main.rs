@@ -30,7 +30,11 @@ impl<T> StringResultExt<T> for Result<T, String> {
 }
 
 #[derive(Parser, Debug)]
-#[command(name = "valenced", version, about = "Valenced Rust runtime — developer CLI")]
+#[command(
+    name = "valenced",
+    version,
+    about = "Valenced Rust runtime — developer CLI"
+)]
 struct Args {
     #[command(subcommand)]
     command: Commands,
@@ -72,7 +76,9 @@ enum Commands {
 
 #[derive(Subcommand, Debug)]
 enum PluginAction {
-    Validate { path: PathBuf },
+    Validate {
+        path: PathBuf,
+    },
     List {
         #[arg(long, default_value = "/tmp/valenced")]
         data_dir: String,
@@ -118,8 +124,12 @@ enum RepoAction {
 
 #[derive(Subcommand, Debug)]
 enum BundleAction {
-    Validate { path: PathBuf },
-    #[command(about = "Generate bundle manifest from bundle/src/plugins (replaces scripts/manifest.ts)")]
+    Validate {
+        path: PathBuf,
+    },
+    #[command(
+        about = "Generate bundle manifest from bundle/src/plugins (replaces scripts/manifest.ts)"
+    )]
     Generate {
         /// Plugins dir (`bundle/src/plugins`).
         plugins_dir: PathBuf,
@@ -154,10 +164,22 @@ fn main() -> Result<()> {
     match args.command {
         Commands::Plugin { action } => match action {
             PluginAction::Validate { path } => {
-                let json = std::fs::read_to_string(&path).with_context(|| format!("read {}", path.display()))?;
+                let json = std::fs::read_to_string(&path)
+                    .with_context(|| format!("read {}", path.display()))?;
                 let m = parse_external_manifest(&json).with_context_string("invalid manifest")?;
-                let pm = m.to_plugin_manifest().with_context_string("convert manifest")?;
-                println!("✓ {} {} (dist: {})", pm.id, pm.version, if m.dist.as_ref().is_some_and(|d| d.wasm.is_some()) { "wasm" } else { "script" });
+                let pm = m
+                    .to_plugin_manifest()
+                    .with_context_string("convert manifest")?;
+                println!(
+                    "✓ {} {} (dist: {})",
+                    pm.id,
+                    pm.version,
+                    if m.dist.as_ref().is_some_and(|d| d.wasm.is_some()) {
+                        "wasm"
+                    } else {
+                        "script"
+                    }
+                );
                 Ok(())
             }
             PluginAction::List { data_dir } => {
@@ -178,8 +200,10 @@ fn main() -> Result<()> {
                 Ok(())
             }
             PluginAction::New { id, name, out } => {
-                valenced_core::manifest::require_valid_plugin_id(&id).map_err(|e| anyhow::anyhow!(e))?;
-                std::fs::create_dir_all(out.join("src")).with_context(|| format!("mkdir {}", out.display()))?;
+                valenced_core::manifest::require_valid_plugin_id(&id)
+                    .map_err(|e| anyhow::anyhow!(e))?;
+                std::fs::create_dir_all(out.join("src"))
+                    .with_context(|| format!("mkdir {}", out.display()))?;
                 let manifest = serde_json::json!({
                     "format": 1,
                     "id": id,
@@ -195,8 +219,12 @@ fn main() -> Result<()> {
                     },
                     "dist": { "wasm": "plugin.wasm" }
                 });
-                std::fs::write(out.join("manifest.json"), serde_json::to_string_pretty(&manifest)?)?;
-                let cargo_toml = format!(r#"[package]
+                std::fs::write(
+                    out.join("manifest.json"),
+                    serde_json::to_string_pretty(&manifest)?,
+                )?;
+                let cargo_toml = format!(
+                    r#"[package]
 name = "{}"
 version = "1.0.0"
 edition = "2024"
@@ -209,14 +237,19 @@ crate-type = ["cdylib", "rlib"]
 serde_json = "1"
 valenced-core = {{ path = "{}", package = "valenced-core" }}
 valenced-runtime = {{ path = "{}", package = "valenced-runtime" }}
-"#, id.replace('.', "-"), env!("CARGO_MANIFEST_DIR"), env!("CARGO_MANIFEST_DIR"));
+"#,
+                    id.replace('.', "-"),
+                    env!("CARGO_MANIFEST_DIR"),
+                    env!("CARGO_MANIFEST_DIR")
+                );
                 // Paths are illustrative; users copy into their repo and fix.
                 let cargo_toml = cargo_toml.replace(
                     &format!("{}/crates", env!("CARGO_MANIFEST_DIR")),
                     "../../crates",
                 );
                 std::fs::write(out.join("Cargo.toml"), &cargo_toml)?;
-                let lib_rs = format!(r#"use std::collections::HashMap;
+                let lib_rs = format!(
+                    r#"use std::collections::HashMap;
 use valenced_core::manifest::{{PluginDependency, PluginManifest}};
 use valenced_core::version::{{Version, VersionRange}};
 use valenced_runtime::plugin::{{Plugin, PluginContext, RuntimeError}};
@@ -243,7 +276,16 @@ impl Plugin for {Crate} {{
     fn manifest(&self) -> &PluginManifest {{ todo!() }}
     fn start(&mut self, _ctx: &mut PluginContext) -> Result<(), RuntimeError> {{ Ok(()) }}
 }}
-"#, Crate = name.replace(' ', "").replace('-', "_").to_lowercase().chars().enumerate().map(|(i, c)| if i == 0 { c.to_ascii_uppercase() } else { c }).collect::<String>());
+"#,
+                    Crate = name
+                        .replace(' ', "")
+                        .replace('-', "_")
+                        .to_lowercase()
+                        .chars()
+                        .enumerate()
+                        .map(|(i, c)| if i == 0 { c.to_ascii_uppercase() } else { c })
+                        .collect::<String>()
+                );
                 // The todo!() above is replaced at build time by a static manifest;
                 // kept minimal so `cargo test` in the template is a starting point.
                 std::fs::write(out.join("src/lib.rs"), &lib_rs)?;
@@ -253,19 +295,22 @@ impl Plugin for {Crate} {{
         },
         Commands::Theme { action } => match action {
             ThemeAction::Validate { path } => {
-                let json = std::fs::read_to_string(&path).with_context(|| format!("read {}", path.display()))?;
+                let json = std::fs::read_to_string(&path)
+                    .with_context(|| format!("read {}", path.display()))?;
                 let t = parse_theme(&json).with_context_string("invalid theme")?;
                 println!("✓ theme '{}' ({} colors)", t.name, t.semantic_colors.len());
                 Ok(())
             }
             ThemeAction::Report { path } => {
-                let json = std::fs::read_to_string(&path).with_context(|| format!("read {}", path.display()))?;
+                let json = std::fs::read_to_string(&path)
+                    .with_context(|| format!("read {}", path.display()))?;
                 let t = parse_theme(&json).with_context_string("invalid theme")?;
                 println!("{}", serde_json::to_string_pretty(&t.report())?);
                 Ok(())
             }
             ThemeAction::Css { path } => {
-                let json = std::fs::read_to_string(&path).with_context(|| format!("read {}", path.display()))?;
+                let json = std::fs::read_to_string(&path)
+                    .with_context(|| format!("read {}", path.display()))?;
                 let t = parse_theme(&json).with_context_string("invalid theme")?;
                 println!("{}", t.css_variables());
                 Ok(())
@@ -273,15 +318,27 @@ impl Plugin for {Crate} {{
         },
         Commands::Repo { action } => match action {
             RepoAction::Validate { path, url } => {
-                let json = std::fs::read_to_string(&path).with_context(|| format!("read {}", path.display()))?;
-                let (index, warnings) = parse_repo_index(&json, &url).with_context_string("invalid repo index")?;
-                println!("✓ repo '{}' ({} plugins, {} warnings)", index.name, index.plugins.len(), warnings.len());
+                let json = std::fs::read_to_string(&path)
+                    .with_context(|| format!("read {}", path.display()))?;
+                let (index, warnings) =
+                    parse_repo_index(&json, &url).with_context_string("invalid repo index")?;
+                println!(
+                    "✓ repo '{}' ({} plugins, {} warnings)",
+                    index.name,
+                    index.plugins.len(),
+                    warnings.len()
+                );
                 for w in warnings {
                     eprintln!("  ! {w}");
                 }
                 Ok(())
             }
-            RepoAction::Install { index, id, data_dir, repo_url } => {
+            RepoAction::Install {
+                index,
+                id,
+                data_dir,
+                repo_url,
+            } => {
                 use valenced_core::install::{UreqFetcher, install_one};
                 use valenced_core::resolver::ResolveRequest;
                 // Index may be a local file path or an https:// URL.
@@ -291,9 +348,11 @@ impl Plugin for {Crate} {{
                 } else {
                     std::fs::read(&index).with_context(|| format!("read {index}"))?
                 };
-                let index_json = String::from_utf8(index_bytes).map_err(|e| anyhow::anyhow!("index not utf8: {e}"))?;
+                let index_json = String::from_utf8(index_bytes)
+                    .map_err(|e| anyhow::anyhow!("index not utf8: {e}"))?;
                 let url = repo_url.unwrap_or_else(|| index.clone());
-                let (repo_index, warnings) = parse_repo_index(&index_json, &url).with_context_string("invalid repo index")?;
+                let (repo_index, warnings) = parse_repo_index(&index_json, &url)
+                    .with_context_string("invalid repo index")?;
                 for w in warnings {
                     eprintln!("  ! {w}");
                 }
@@ -323,13 +382,20 @@ impl Plugin for {Crate} {{
         },
         Commands::Bundle { action } => match action {
             BundleAction::Validate { path } => {
-                let json = std::fs::read_to_string(&path).with_context(|| format!("read {}", path.display()))?;
+                let json = std::fs::read_to_string(&path)
+                    .with_context(|| format!("read {}", path.display()))?;
                 let m = parse_bundle_manifest(&json).with_context(|| "invalid bundle manifest")?;
                 let count = m.plugin_manifests().len();
                 println!("✓ bundle {} ({} plugins)", m.version, count);
                 Ok(())
             }
-            BundleAction::Generate { plugins_dir, version, dev, out, default_repo } => {
+            BundleAction::Generate {
+                plugins_dir,
+                version,
+                dev,
+                out,
+                default_repo,
+            } => {
                 let manifest = valenced_core::bundle_builder::generate_bundle_manifest(
                     &plugins_dir,
                     &version,
@@ -342,7 +408,11 @@ impl Plugin for {Crate} {{
                     println!("{json}");
                 } else {
                     std::fs::write(&out, &json).with_context(|| format!("write {out}"))?;
-                    println!("✓ generated bundle {} ({} plugins) → {out}", manifest.version, manifest.plugins.len());
+                    println!(
+                        "✓ generated bundle {} ({} plugins) → {out}",
+                        manifest.version,
+                        manifest.plugins.len()
+                    );
                 }
                 Ok(())
             }
@@ -355,7 +425,11 @@ impl Plugin for {Crate} {{
                 Ok(())
             }
             VersionAction::Order { versions } => {
-                let mut vs: Vec<Version> = versions.iter().map(|s| Version::parse(s)).collect::<Result<_, _>>().with_context_string("invalid version")?;
+                let mut vs: Vec<Version> = versions
+                    .iter()
+                    .map(|s| Version::parse(s))
+                    .collect::<Result<_, _>>()
+                    .with_context_string("invalid version")?;
                 vs.sort();
                 let strs: Vec<String> = vs.iter().map(|v| v.to_string()).collect();
                 println!("{}", strs.join(" < "));

@@ -55,7 +55,8 @@ pub struct Theme {
 
 /// Parse + validate theme JSON.
 pub fn parse_theme(json: &str) -> Result<Theme, String> {
-    let theme: Theme = serde_json::from_str(json).map_err(|e| format!("Unable to parse theme JSON: {e}"))?;
+    let theme: Theme =
+        serde_json::from_str(json).map_err(|e| format!("Unable to parse theme JSON: {e}"))?;
     theme.validate()?;
     Ok(theme)
 }
@@ -74,7 +75,9 @@ impl Theme {
             }
             for color in colors {
                 if !is_valid_color(color) {
-                    return Err(format!("Theme color '{key}' has invalid color '{color}' (expected #RRGGBB or #RRGGBBAA)"));
+                    return Err(format!(
+                        "Theme color '{key}' has invalid color '{color}' (expected #RRGGBB or #RRGGBBAA)"
+                    ));
                 }
             }
         }
@@ -84,8 +87,13 @@ impl Theme {
     /// CSS custom properties the GPUI preview renders:
     /// `--<lowercase-key>: <dark-value>;`
     pub fn css_variables(&self) -> String {
-        let mut lines: Vec<String> = self.semantic_colors.iter()
-            .filter_map(|(k, v)| v.first().map(|c| format!("  --{}: {};", k.to_lowercase(), c)))
+        let mut lines: Vec<String> = self
+            .semantic_colors
+            .iter()
+            .filter_map(|(k, v)| {
+                v.first()
+                    .map(|c| format!("  --{}: {};", k.to_lowercase(), c))
+            })
             .collect();
         lines.sort();
         format!(":root {{\n{}\n}}", lines.join("\n"))
@@ -132,7 +140,11 @@ mod tests {
         }"##;
         let theme = parse_theme(json).unwrap();
         assert_eq!(theme.semantic_colors.len(), 3);
-        assert!(theme.css_variables().contains("--chat_input_background: #000000;"));
+        assert!(
+            theme
+                .css_variables()
+                .contains("--chat_input_background: #000000;")
+        );
     }
 
     #[test]

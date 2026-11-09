@@ -9,7 +9,10 @@ use std::path::{Path, PathBuf};
 
 /// Sibling path with `suffix` appended (e.g. `foo.json` + `.tmp`).
 pub fn sibling(path: &Path, suffix: &str) -> PathBuf {
-    let mut name = path.file_name().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+    let mut name = path
+        .file_name()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap_or_default();
     name.push_str(suffix);
     path.with_file_name(name)
 }
@@ -21,7 +24,12 @@ pub fn sibling(path: &Path, suffix: &str) -> PathBuf {
 /// (e.g. some Android filesystems refuse to replace an existing file)
 /// restores the backup instead of leaving nothing behind.
 pub fn atomic_write_bytes(target: &Path, bytes: &[u8]) -> std::io::Result<()> {
-    let parent = target.parent().ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "Cannot write to a filesystem root"))?;
+    let parent = target.parent().ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "Cannot write to a filesystem root",
+        )
+    })?;
     if !parent.as_os_str().is_empty() {
         fs::create_dir_all(parent)?;
     }

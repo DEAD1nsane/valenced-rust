@@ -35,7 +35,9 @@ unsafe fn cstr_to_str(ptr: *const c_char) -> Option<String> {
 
 fn json_out(value: serde_json::Value) -> *mut c_char {
     let s = serde_json::to_string(&value).unwrap_or_else(|_| "null".into());
-    CString::new(s).map(|c| c.into_raw()).unwrap_or(std::ptr::null_mut())
+    CString::new(s)
+        .map(|c| c.into_raw())
+        .unwrap_or(std::ptr::null_mut())
 }
 
 fn err_out(code: i64, message: impl Into<String>) -> *mut c_char {
@@ -56,7 +58,9 @@ pub unsafe extern "C" fn valenced_free_string(ptr: *mut c_char) {
     if ptr.is_null() {
         return;
     }
-    unsafe { let _ = CString::from_raw(ptr); };
+    unsafe {
+        let _ = CString::from_raw(ptr);
+    };
 }
 
 fn version_to_json(v: &Version) -> serde_json::Value {
@@ -78,7 +82,10 @@ pub unsafe extern "C" fn valenced_version_parse(input: *const c_char) -> *mut c_
 
 /// Check `version` against `range` (`"*"` or `">=1.0 <2"`). Returns `{"ok":true,"value":true|false}`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn valenced_version_satisfies(version_ptr: *const c_char, range_ptr: *const c_char) -> *mut c_char {
+pub unsafe extern "C" fn valenced_version_satisfies(
+    version_ptr: *const c_char,
+    range_ptr: *const c_char,
+) -> *mut c_char {
     let v = unsafe { cstr_to_str(version_ptr) };
     let r = unsafe { cstr_to_str(range_ptr) };
     let (Some(vs), Some(rs)) = (v.as_deref(), r.as_deref()) else {
@@ -106,7 +113,10 @@ pub unsafe extern "C" fn valenced_manifest_validate(json_ptr: *const c_char) -> 
 
 /// Parse a repo index (`repoUrl`, `json`). Returns `{"ok":true,"value":{index,warnings}}`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn valenced_repo_parse(url_ptr: *const c_char, json_ptr: *const c_char) -> *mut c_char {
+pub unsafe extern "C" fn valenced_repo_parse(
+    url_ptr: *const c_char,
+    json_ptr: *const c_char,
+) -> *mut c_char {
     let url = unsafe { cstr_to_str(url_ptr) };
     let json = unsafe { cstr_to_str(json_ptr) };
     match (url.as_deref(), json.as_deref()) {
@@ -150,42 +160,77 @@ pub unsafe extern "C" fn valenced_resolve_install(
 ) -> *mut c_char {
     use std::collections::HashMap;
     use valenced_core::manifest::PluginSource;
-    use valenced_core::resolver::{ResolveRequest, PlanTarget, resolve_install};
     use valenced_core::repos::RepoIndex;
+    use valenced_core::resolver::{PlanTarget, ResolveRequest, resolve_install};
 
     let request_s = unsafe { cstr_to_str(request_ptr) };
     let repos_s = unsafe { cstr_to_str(repos_ptr) };
     let installed_s = unsafe { cstr_to_str(installed_ptr) };
     let sources_s = unsafe { cstr_to_str(sources_ptr) };
-    let (Some(req_s), Some(repos_s), Some(inst_s), Some(src_s)) =
-        (request_s.as_deref(), repos_s.as_deref(), installed_s.as_deref(), sources_s.as_deref())
-    else {
+    let (Some(req_s), Some(repos_s), Some(inst_s), Some(src_s)) = (
+        request_s.as_deref(),
+        repos_s.as_deref(),
+        installed_s.as_deref(),
+        sources_s.as_deref(),
+    ) else {
         return err_out(-2, "null input");
     };
 
-    let req_v: serde_json::Value = match serde_json::from_str(req_s) { Ok(v) => v, Err(e) => return err_out(-1, e.to_string()) };
-    let id = req_v.get("id").and_then(|x| x.as_str()).unwrap_or("").to_string();
+    let req_v: serde_json::Value = match serde_json::from_str(req_s) {
+        Ok(v) => v,
+        Err(e) => return err_out(-1, e.to_string()),
+    };
+    let id = req_v
+        .get("id")
+        .and_then(|x| x.as_str())
+        .unwrap_or("")
+        .to_string();
     if id.is_empty() {
         return err_out(-1, "request.id missing");
     }
     let mut request = ResolveRequest::new(&id);
-    request.skip_missing_optionals = req_v.get("skipMissingOptionals").and_then(|x| x.as_bool()).unwrap_or(false);
+    request.skip_missing_optionals = req_v
+        .get("skipMissingOptionals")
+        .and_then(|x| x.as_bool())
+        .unwrap_or(false);
     if let Some(targets) = req_v.get("targets").and_then(|x| x.as_object()) {
         for (tid, t) in targets {
-            request.targets.insert(tid.clone(), PlanTarget {
-                repo: t.get("repo").and_then(|x| x.as_str()).map(|s| s.to_string()),
-                version: t.get("version").and_then(|x| x.as_str()).map(|s| s.to_string()),
-                channel: t.get("channel").and_then(|x| x.as_str()).map(|s| s.to_string()),
-                compatible: t.get("compatible").and_then(|x| x.as_bool()).unwrap_or(false),
-            });
+            request.targets.insert(
+                tid.clone(),
+                PlanTarget {
+                    repo: t
+                        .get("repo")
+                        .and_then(|x| x.as_str())
+                        .map(|s| s.to_string()),
+                    version: t
+                        .get("version")
+                        .and_then(|x| x.as_str())
+                        .map(|s| s.to_string()),
+                    channel: t
+                        .get("channel")
+                        .and_then(|x| x.as_str())
+                        .map(|s| s.to_string()),
+                    compatible: t
+                        .get("compatible")
+                        .and_then(|x| x.as_bool())
+                        .unwrap_or(false),
+                },
+            );
         }
     }
 
-    let repos_v: serde_json::Value = match serde_json::from_str(repos_s) { Ok(v) => v, Err(e) => return err_out(-1, e.to_string()) };
+    let repos_v: serde_json::Value = match serde_json::from_str(repos_s) {
+        Ok(v) => v,
+        Err(e) => return err_out(-1, e.to_string()),
+    };
     let mut repos: Vec<(String, RepoIndex)> = Vec::new();
     if let Some(arr) = repos_v.as_array() {
         for entry in arr {
-            let url = entry.get("url").and_then(|x| x.as_str()).unwrap_or("").to_string();
+            let url = entry
+                .get("url")
+                .and_then(|x| x.as_str())
+                .unwrap_or("")
+                .to_string();
             if let Some(index_v) = entry.get("index") {
                 if let Ok(index) = serde_json::from_value::<RepoIndex>(index_v.clone()) {
                     repos.push((url, index));
@@ -194,7 +239,10 @@ pub unsafe extern "C" fn valenced_resolve_install(
         }
     }
 
-    let inst_v: serde_json::Value = match serde_json::from_str(inst_s) { Ok(v) => v, Err(e) => return err_out(-1, e.to_string()) };
+    let inst_v: serde_json::Value = match serde_json::from_str(inst_s) {
+        Ok(v) => v,
+        Err(e) => return err_out(-1, e.to_string()),
+    };
     let mut installed: HashMap<String, Version> = HashMap::new();
     if let Some(obj) = inst_v.as_object() {
         for (k, v) in obj {
@@ -204,23 +252,31 @@ pub unsafe extern "C" fn valenced_resolve_install(
         }
     }
 
-    let src_v: serde_json::Value = match serde_json::from_str(src_s) { Ok(v) => v, Err(e) => return err_out(-1, e.to_string()) };
-    let sources: HashMap<String, PluginSource> =
-        serde_json::from_value(src_v).unwrap_or_default();
+    let src_v: serde_json::Value = match serde_json::from_str(src_s) {
+        Ok(v) => v,
+        Err(e) => return err_out(-1, e.to_string()),
+    };
+    let sources: HashMap<String, PluginSource> = serde_json::from_value(src_v).unwrap_or_default();
 
     match resolve_install(&request, &repos, &installed, &sources) {
         Ok(plan) => {
-            let actions: Vec<_> = plan.actions.iter().map(|a| serde_json::json!({
-                "id": a.id,
-                "version": a.version.to_string(),
-                "url": a.url,
-                "sha256": a.sha256,
-                "size": a.size,
-                "repo": a.repo,
-                "channel": a.channel,
-                "hold": a.hold,
-                "replaces": a.replaces.as_ref().map(|v| v.to_string()),
-            })).collect();
+            let actions: Vec<_> = plan
+                .actions
+                .iter()
+                .map(|a| {
+                    serde_json::json!({
+                        "id": a.id,
+                        "version": a.version.to_string(),
+                        "url": a.url,
+                        "sha256": a.sha256,
+                        "size": a.size,
+                        "repo": a.repo,
+                        "channel": a.channel,
+                        "hold": a.hold,
+                        "replaces": a.replaces.as_ref().map(|v| v.to_string()),
+                    })
+                })
+                .collect();
             ok_out(serde_json::json!({ "actions": actions, "warnings": plan.warnings }))
         }
         Err(e) => err_out(-1, e.0.to_string()),
@@ -240,7 +296,8 @@ mod tests {
 
     fn call(ptr: *mut c_char) -> serde_json::Value {
         assert!(!ptr.is_null());
-        let v: serde_json::Value = serde_json::from_str(unsafe { CStr::from_ptr(ptr).to_str().unwrap() }).unwrap();
+        let v: serde_json::Value =
+            serde_json::from_str(unsafe { CStr::from_ptr(ptr).to_str().unwrap() }).unwrap();
         unsafe { valenced_free_string(ptr) };
         v
     }

@@ -55,13 +55,19 @@ impl Version {
         let mut nums = Vec::new();
         for seg in nums_part.split('.') {
             if seg.is_empty() {
-                return Err(format!("Invalid version numeric segment: '{seg}' in '{value}'"));
+                return Err(format!(
+                    "Invalid version numeric segment: '{seg}' in '{value}'"
+                ));
             }
             // Must be all digits.
             if !seg.chars().all(|c| c.is_ascii_digit()) {
-                return Err(format!("Invalid version numeric segment: '{seg}' in '{value}'"));
+                return Err(format!(
+                    "Invalid version numeric segment: '{seg}' in '{value}'"
+                ));
             }
-            let n: u64 = seg.parse().map_err(|_| format!("Invalid version numeric segment: '{seg}' in '{value}'"))?;
+            let n: u64 = seg
+                .parse()
+                .map_err(|_| format!("Invalid version numeric segment: '{seg}' in '{value}'"))?;
             nums.push(n);
         }
         Ok(Self { nums, label })
@@ -69,7 +75,10 @@ impl Version {
 
     /// Strip the label, returning the bare numeric version.
     pub fn bare(&self) -> Version {
-        Version { nums: self.nums.clone(), label: None }
+        Version {
+            nums: self.nums.clone(),
+            label: None,
+        }
     }
 
     pub fn is_bare(&self) -> bool {
@@ -115,7 +124,10 @@ impl PartialOrd for Version {
 }
 
 fn is_valid_label(label: &str) -> bool {
-    !label.is_empty() && label.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
+    !label.is_empty()
+        && label
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
 }
 
 fn split_runs(label: &str) -> Vec<String> {
@@ -255,7 +267,9 @@ impl VersionRange {
             } else if token.starts_with('=') {
                 Op::Eq
             } else {
-                return Err(format!("Invalid version range bound: '{token}' in '{value}'"));
+                return Err(format!(
+                    "Invalid version range bound: '{token}' in '{value}'"
+                ));
             };
             let version_str = token.trim_start_matches(['<', '>', '=', ' ']);
             // Recompute correctly for two-char ops.
@@ -267,7 +281,9 @@ impl VersionRange {
             let version = Version::parse(version_str)?;
             if version.label.is_some() {
                 let _ = op;
-                return Err(format!("Version range bounds must not be labeled: '{token}' in '{value}'"));
+                return Err(format!(
+                    "Version range bounds must not be labeled: '{token}' in '{value}'"
+                ));
             }
             bounds.push(Bound { op, version });
         }
@@ -279,7 +295,10 @@ impl VersionRange {
         if self.is_any() {
             return true;
         }
-        let bare = Version { nums: version.nums.clone(), label: None };
+        let bare = Version {
+            nums: version.nums.clone(),
+            label: None,
+        };
         self.bounds.iter().all(|b| {
             let cmp = bare.cmp(&b.version);
             match b.op {
@@ -298,7 +317,11 @@ impl std::fmt::Display for VersionRange {
         if self.is_any() {
             return write!(f, "*");
         }
-        let parts: Vec<String> = self.bounds.iter().map(|b| format!("{}{}", b.op.symbol(), b.version)).collect();
+        let parts: Vec<String> = self
+            .bounds
+            .iter()
+            .map(|b| format!("{}{}", b.op.symbol(), b.version))
+            .collect();
         write!(f, "{}", parts.join(" "))
     }
 }
@@ -317,7 +340,10 @@ mod tests {
     fn parse_and_display() {
         assert_eq!(Version::parse("1.2.3").unwrap().to_string(), "1.2.3");
         assert_eq!(Version::parse("1.02").unwrap().nums, vec![1, 2]);
-        assert_eq!(Version::parse("1.2.0-rc").unwrap().label.as_deref(), Some("rc"));
+        assert_eq!(
+            Version::parse("1.2.0-rc").unwrap().label.as_deref(),
+            Some("rc")
+        );
         assert!(Version::parse("").is_err());
         assert!(Version::parse("1.0-").is_err());
         assert!(Version::parse("1.0-RC").is_err());
@@ -326,7 +352,12 @@ mod tests {
 
     #[test]
     fn ordering_numeric_padded() {
-        assert_eq!(Version::parse("1.2").unwrap().cmp(&Version::parse("1.2.0").unwrap()), Ordering::Equal);
+        assert_eq!(
+            Version::parse("1.2")
+                .unwrap()
+                .cmp(&Version::parse("1.2.0").unwrap()),
+            Ordering::Equal
+        );
         assert!(Version::parse("1.2.0").unwrap() < Version::parse("1.10").unwrap());
         assert!(Version::parse("2").unwrap() > Version::parse("1.9.9").unwrap());
     }
@@ -364,6 +395,9 @@ mod tests {
     #[test]
     fn range_display() {
         assert_eq!(VersionRange::parse("*").unwrap().to_string(), "*");
-        assert_eq!(VersionRange::parse(">=1.0 <2").unwrap().to_string(), ">=1.0 <2");
+        assert_eq!(
+            VersionRange::parse(">=1.0 <2").unwrap().to_string(),
+            ">=1.0 <2"
+        );
     }
 }

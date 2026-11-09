@@ -32,8 +32,17 @@ impl JsPlugin {
             id: manifest.id.clone(),
             message: "dist.script missing (wasm-only plugin needs wasm host)".into(),
         })?;
-        let plugin_manifest = manifest.to_plugin_manifest().map_err(|e| RuntimeError::Plugin { id: manifest.id.clone(), message: e })?;
-        Ok(Self { manifest: plugin_manifest, script_path: script_path.clone(), started_late: false })
+        let plugin_manifest = manifest
+            .to_plugin_manifest()
+            .map_err(|e| RuntimeError::Plugin {
+                id: manifest.id.clone(),
+                message: e,
+            })?;
+        Ok(Self {
+            manifest: plugin_manifest,
+            script_path: script_path.clone(),
+            started_late: false,
+        })
     }
 }
 
@@ -62,7 +71,10 @@ impl JsPluginHost {
     pub fn stage(plugin: &JsPlugin) -> Self {
         #[cfg(not(feature = "js-compat"))]
         {
-            Self { plugin_id: plugin.manifest.id.clone(), script_path: plugin.script_path.clone() }
+            Self {
+                plugin_id: plugin.manifest.id.clone(),
+                script_path: plugin.script_path.clone(),
+            }
         }
         #[cfg(feature = "js-compat")]
         {
@@ -89,7 +101,9 @@ impl JsPluginHost {
     /// without GC-traced closures — fill it from `DiscordApi` at stage time.
     #[cfg(feature = "js-compat")]
     pub fn stage_with_api(plugin: &JsPlugin, discord: &DiscordApi) -> Self {
-        use boa_engine::{Context, JsString, js_string, object::ObjectInitializer, property::Attribute, JsValue};
+        use boa_engine::{
+            Context, JsString, JsValue, js_string, object::ObjectInitializer, property::Attribute,
+        };
 
         let version = plugin.manifest.version.to_string();
         let plugin_id = plugin.manifest.id.clone();
@@ -103,9 +117,11 @@ impl JsPluginHost {
         // Callers that need live lookups should use
         // `discord.module(name)` from Rust and inject values via eval.
         let modules_json = serde_json::json!({});
-        let modules_value = JsValue::from_json(&modules_json, &mut context).unwrap_or(JsValue::null());
+        let modules_value =
+            JsValue::from_json(&modules_json, &mut context).unwrap_or(JsValue::null());
         let assets_json = serde_json::json!(assets);
-        let assets_value = JsValue::from_json(&assets_json, &mut context).unwrap_or(JsValue::null());
+        let assets_value =
+            JsValue::from_json(&assets_json, &mut context).unwrap_or(JsValue::null());
 
         let discord_obj = ObjectInitializer::new(&mut context)
             .property(js_string!("modules"), modules_value, Attribute::all())
@@ -113,12 +129,21 @@ impl JsPluginHost {
             .build();
 
         let valenced = ObjectInitializer::new(&mut context)
-            .property(js_string!("version"), JsString::from(version), Attribute::all())
-            .property(js_string!("pluginId"), JsString::from(plugin_id.clone()), Attribute::all())
+            .property(
+                js_string!("version"),
+                JsString::from(version),
+                Attribute::all(),
+            )
+            .property(
+                js_string!("pluginId"),
+                JsString::from(plugin_id.clone()),
+                Attribute::all(),
+            )
             .property(js_string!("discord"), discord_obj, Attribute::all())
             .build();
 
-        let _ = context.register_global_property(js_string!("valenced"), valenced, Attribute::all());
+        let _ =
+            context.register_global_property(js_string!("valenced"), valenced, Attribute::all());
 
         Self {
             plugin_id,
@@ -136,9 +161,11 @@ impl JsPluginHost {
     /// Without `js-compat`, this is a no-op returning `Null`.
     #[cfg(feature = "js-compat")]
     pub fn eval(&self, script: &str) -> Result<serde_json::Value, String> {
-        use boa_engine::{Source, JsValue};
+        use boa_engine::{JsValue, Source};
         let mut ctx = self.context.lock().unwrap();
-        let value = ctx.eval(Source::from_bytes(script)).map_err(|e| format!("eval: {e}"))?;
+        let value = ctx
+            .eval(Source::from_bytes(script))
+            .map_err(|e| format!("eval: {e}"))?;
         // Best-effort JSON round-trip for primitives; objects become null.
         let json = match value {
             JsValue::Boolean(b) => serde_json::Value::Bool(b),
@@ -206,7 +233,10 @@ mod tests {
         let discord = DiscordApi::new(Arc::new(stub));
         let host = JsPluginHost::stage_with_api(&js, &discord);
         assert_eq!(host.eval("valenced.version")?.as_str(), Some("1.0.0"));
-        assert_eq!(host.eval("valenced.pluginId")?.as_str(), Some("com.example.js"));
+        assert_eq!(
+            host.eval("valenced.pluginId")?.as_str(),
+            Some("com.example.js")
+        );
         Ok(())
     }
 }

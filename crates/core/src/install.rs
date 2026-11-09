@@ -32,7 +32,9 @@ impl Fetcher for UreqFetcher {
         if let Some(path) = url.strip_prefix("file://") {
             return std::fs::read(path).map_err(|e| format!("read {path}: {e}"));
         }
-        let resp = ureq::get(url).call().map_err(|e| format!("fetch {url}: {e}"))?;
+        let resp = ureq::get(url)
+            .call()
+            .map_err(|e| format!("fetch {url}: {e}"))?;
         let mut bytes = Vec::new();
         resp.into_reader()
             .read_to_end(&mut bytes)
@@ -46,9 +48,17 @@ pub enum InstallError {
     #[error("fetch {url}: {msg}")]
     Fetch { url: String, msg: String },
     #[error("size mismatch for {id}: expected {expected}, got {actual}")]
-    Size { id: String, expected: i64, actual: usize },
+    Size {
+        id: String,
+        expected: i64,
+        actual: usize,
+    },
     #[error("sha256 mismatch for {id}: expected {expected}, got {actual}")]
-    Checksum { id: String, expected: String, actual: String },
+    Checksum {
+        id: String,
+        expected: String,
+        actual: String,
+    },
     #[error("extract {id}: {msg}")]
     Extract { id: String, msg: String },
     #[error("io: {0}")]
@@ -58,15 +68,28 @@ pub enum InstallError {
 }
 
 /// Verify size + sha256 of a fetched artifact.
-pub fn verify_artifact(id: &str, bytes: &[u8], expected_sha: &str, expected_size: i64) -> Result<(), InstallError> {
+pub fn verify_artifact(
+    id: &str,
+    bytes: &[u8],
+    expected_sha: &str,
+    expected_size: i64,
+) -> Result<(), InstallError> {
     if expected_size >= 0 && bytes.len() as i64 != expected_size {
-        return Err(InstallError::Size { id: id.into(), expected: expected_size, actual: bytes.len() });
+        return Err(InstallError::Size {
+            id: id.into(),
+            expected: expected_size,
+            actual: bytes.len(),
+        });
     }
     let mut hasher = Sha256::new();
     hasher.update(bytes);
     let digest = format!("{:x}", hasher.finalize());
     if digest != expected_sha.to_lowercase() {
-        return Err(InstallError::Checksum { id: id.into(), expected: expected_sha.into(), actual: digest });
+        return Err(InstallError::Checksum {
+            id: id.into(),
+            expected: expected_sha.into(),
+            actual: digest,
+        });
     }
     Ok(())
 }
@@ -74,19 +97,25 @@ pub fn verify_artifact(id: &str, bytes: &[u8], expected_sha: &str, expected_size
 /// Extract a ZIP artifact into `dest`, refusing `..` escapes.
 pub fn extract_zip(bytes: &[u8], dest: &Path) -> Result<(), String> {
     use std::io::Cursor;
-    let mut archive = zip::ZipArchive::new(Cursor::new(bytes)).map_err(|e| format!("open zip: {e}"))?;
+    let mut archive =
+        zip::ZipArchive::new(Cursor::new(bytes)).map_err(|e| format!("open zip: {e}"))?;
     for i in 0..archive.len() {
         let mut file = archive.by_index(i).map_err(|e| format!("entry {i}: {e}"))?;
-        let out_path = file.enclosed_name().ok_or_else(|| format!("entry {i}: unsafe path"))?;
+        let out_path = file
+            .enclosed_name()
+            .ok_or_else(|| format!("entry {i}: unsafe path"))?;
         let out = dest.join(out_path);
         if file.is_dir() {
             std::fs::create_dir_all(&out).map_err(|e| format!("mkdir {}: {e}", out.display()))?;
         } else {
             if let Some(parent) = out.parent() {
-                std::fs::create_dir_all(parent).map_err(|e| format!("mkdir {}: {e}", parent.display()))?;
+                std::fs::create_dir_all(parent)
+                    .map_err(|e| format!("mkdir {}: {e}", parent.display()))?;
             }
-            let mut out_file = std::fs::File::create(&out).map_err(|e| format!("create {}: {e}", out.display()))?;
-            std::io::copy(&mut file, &mut out_file).map_err(|e| format!("write {}: {e}", out.display()))?;
+            let mut out_file = std::fs::File::create(&out)
+                .map_err(|e| format!("create {}: {e}", out.display()))?;
+            std::io::copy(&mut file, &mut out_file)
+                .map_err(|e| format!("write {}: {e}", out.display()))?;
             // Preserve executable bit for scripts.
             #[cfg(unix)]
             {
@@ -110,20 +139,31 @@ pub fn load_sources(paths: &PluginPaths) -> HashMap<String, PluginSource> {
 }
 
 /// Persist `sources.json` atomically.
-pub fn save_sources(paths: &PluginPaths, sources: &HashMap<String, PluginSource>) -> Result<(), InstallError> {
-    let json = serde_json::to_string_pretty(sources).map_err(|e| InstallError::Plan(e.to_string()))?;
+pub fn save_sources(
+    paths: &PluginPaths,
+    sources: &HashMap<String, PluginSource>,
+) -> Result<(), InstallError> {
+    let json =
+        serde_json::to_string_pretty(sources).map_err(|e| InstallError::Plan(e.to_string()))?;
     crate::fs_util::atomic_write_utf8(&paths.sources_json(), &json)?;
     Ok(())
 }
 
-fn extract_action(action: &PlannedAction, bytes: &[u8], paths: &PluginPaths) -> Result<(), InstallError> {
+fn extract_action(
+    action: &PlannedAction,
+    bytes: &[u8],
+    paths: &PluginPaths,
+) -> Result<(), InstallError> {
     let dest = paths.dist_for(&action.id);
     // Empty previous install first so stale files don't linger.
     if dest.exists() {
         let _ = std::fs::remove_dir_all(&dest);
     }
     std::fs::create_dir_all(&dest)?;
-    extract_zip(bytes, &dest).map_err(|e| InstallError::Extract { id: action.id.clone(), msg: e })?;
+    extract_zip(bytes, &dest).map_err(|e| InstallError::Extract {
+        id: action.id.clone(),
+        msg: e,
+    })?;
     Ok(())
 }
 
@@ -141,7 +181,12 @@ pub fn install_plan<F: Fetcher>(
     let mut installed = Vec::new();
 
     for action in &plan.actions {
-        let bytes = fetcher.fetch(&action.url).map_err(|e| InstallError::Fetch { url: action.url.clone(), msg: e })?;
+        let bytes = fetcher
+            .fetch(&action.url)
+            .map_err(|e| InstallError::Fetch {
+                url: action.url.clone(),
+                msg: e,
+            })?;
         verify_artifact(&action.id, &bytes, &action.sha256, action.size)?;
         extract_action(action, &bytes, paths)?;
 
@@ -194,7 +239,10 @@ mod tests {
     struct MapFetcher(HashMap<String, Vec<u8>>);
     impl Fetcher for MapFetcher {
         fn fetch(&self, url: &str) -> Result<Vec<u8>, String> {
-            self.0.get(url).cloned().ok_or_else(|| format!("not found: {url}"))
+            self.0
+                .get(url)
+                .cloned()
+                .ok_or_else(|| format!("not found: {url}"))
         }
     }
 
@@ -225,11 +273,15 @@ mod tests {
 
     #[test]
     fn install_extracts_and_records_sources() {
-        let dir = std::env::temp_dir().join(format!("valenced-install-test-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("valenced-install-test-{}", std::process::id()));
         let paths = PluginPaths::new(dir.clone());
         paths.ensure_layout().unwrap();
 
-        let (zip_bytes, sha) = make_zip(&[("manifest.json", br#"{"id":"com.example.a"}"#), ("plugin.wasm", b"wasm-bytes")]);
+        let (zip_bytes, sha) = make_zip(&[
+            ("manifest.json", br#"{"id":"com.example.a"}"#),
+            ("plugin.wasm", b"wasm-bytes"),
+        ]);
         let url = "https://a.example/a.zip".to_string();
         let mut map = HashMap::new();
         map.insert(url.clone(), zip_bytes);
@@ -253,12 +305,23 @@ mod tests {
         let action = PlannedAction { size: 0, ..action };
         // Recompute with real size: patch by re-fetching len.
         let real_len = fetcher.fetch(&url).unwrap().len() as i64;
-        let action = PlannedAction { size: real_len, ..action };
+        let action = PlannedAction {
+            size: real_len,
+            ..action
+        };
 
-        let plan = InstallPlan { actions: vec![action], warnings: vec![] };
+        let plan = InstallPlan {
+            actions: vec![action],
+            warnings: vec![],
+        };
         let installed = install_plan(&plan, &fetcher, &paths).unwrap();
         assert_eq!(installed, vec!["com.example.a"]);
-        assert!(paths.dist_for("com.example.a").join("manifest.json").exists());
+        assert!(
+            paths
+                .dist_for("com.example.a")
+                .join("manifest.json")
+                .exists()
+        );
         assert!(paths.dist_for("com.example.a").join("plugin.wasm").exists());
         let sources = load_sources(&paths);
         assert_eq!(sources["com.example.a"].channel, "latest");
@@ -267,7 +330,8 @@ mod tests {
 
     #[test]
     fn size_mismatch_fails() {
-        let dir = std::env::temp_dir().join(format!("valenced-install-size-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("valenced-install-size-{}", std::process::id()));
         let paths = PluginPaths::new(dir.clone());
         paths.ensure_layout().unwrap();
         let (zip_bytes, sha) = make_zip(&[("a.txt", b"hi")]);
@@ -289,7 +353,10 @@ mod tests {
             candidates: HashMap::new(),
             channel_version: None,
         };
-        let plan = InstallPlan { actions: vec![action], warnings: vec![] };
+        let plan = InstallPlan {
+            actions: vec![action],
+            warnings: vec![],
+        };
         assert!(install_plan(&plan, &fetcher, &paths).is_err());
         let _ = std::fs::remove_dir_all(&dir);
     }
