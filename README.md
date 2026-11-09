@@ -67,6 +67,15 @@ cargo run -p valenced-cli -- theme css      ~/GitHub/discord-themes/Themes/DARK/
 cargo run -p valenced-desktop -- theme-report ~/GitHub/discord-themes/Themes/DARK/"RBW AMOLED.json"
 cargo run -p valenced-desktop -- dev-snippet --host 192.168.1.20
 
+# Theme previews (HTML grid)
+cargo run -p valenced-cli -- theme preview ~/GitHub/discord-themes/Themes/DARK/"Azure Blue AMOLED.json" --out preview.html
+```
+
+## Theme previews
+
+<a href="docs/screenshots/00-azure-blue-amoled.html"><img src="docs/screenshots/00-azure-blue-amoled.thumb.jpg" width="180"></a>
+<a href="docs/screenshots/01-rbw-amoled.html"><img src="docs/screenshots/01-rbw-amoled.thumb.jpg" width="180"></a>
+
 # FFI / host health + repo cache
 cargo run -p valenced-cli -- ffi host-check --data-dir /tmp/valenced
 cargo run -p valenced-cli -- repo refresh https://example.com/plugins.json --data-dir /tmp/valenced
