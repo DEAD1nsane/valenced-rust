@@ -14,10 +14,13 @@ Requires NDK / Xcode — not buildable in Termux CI (same as upstream
 `android/` + `ios/` today). `cargo test --workspace` (host) covers all
 logic; device builds only need the FFI artifact.
 
-> **Prebuilt Android artifact:** `libvalenced_ffi-aarch64-linux-android.so`
-> is attached to the [v0.2.0 release](https://github.com/DEAD1nsane/valenced-rust/releases/tag/v0.2.0)
-> (NDK r27c, `aarch64-linux-android24`, sha256 `64d36b491f4cf7c35264c4b5b84f19c3022c20fe9c7c6bc4a1f85a00d880a304`).
-> If rebuilding yourself, use exactly that NDK + linker.
+> **Prebuilt Android artifacts:** from v0.3.0 on, CI builds and attaches
+> `libvalenced_ffi-aarch64-linux-android.so` with NDK r27c plus
+> `sha256sums-aarch64-linux-android.txt` (see the `android` job in
+> `.github/workflows/release.yml`). The v0.2.0 `.so` was assembled
+> out-of-band on a clean Linux box (same NDK r27c, `android24` linker); its
+> sha256 is in the v0.2.0 release notes. Later builds differ per run, so
+> always verify against the `sha256sums-*` file for the tag you download.
 
 ## Android (NDK)
 

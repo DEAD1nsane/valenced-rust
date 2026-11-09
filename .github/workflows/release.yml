@@ -44,3 +44,31 @@ jobs:
           files: dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+      - uses: nttldr/setup-ndk@v1
+        id: ndk
+        with:
+          ndk-version: r27c
+      - name: Build libvalenced_ffi.so (arm64-v8a)
+        env:
+          CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER: ${{ steps.ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
+          CC_aarch64_linux_android: ${{ steps.ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
+          AR_aarch64_linux_android: ${{ steps.ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+        run: cargo build --locked --release -p valenced-ffi --target aarch64-linux-android
+      - name: Stage asset + sha256
+        run: |
+          cp target/aarch64-linux-android/release/libvalenced_ffi.so libvalenced_ffi-aarch64-linux-android.so
+          sha256sum libvalenced_ffi-aarch64-linux-android.so > sha256sums-aarch64-linux-android.txt
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            libvalenced_ffi-aarch64-linux-android.so
+            sha256sums-aarch64-linux-android.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
