@@ -38,7 +38,7 @@ jobs:
             src="target/${{ matrix.target }}/release/${bin}${ext}"
             cp "$src" "dist/${bin}-${{ matrix.target }}${ext}"
           done
-          sha256sum dist/* > dist/sha256sums-${{ matrix.target }}.txt || shasum -a 256 dist/* > dist/sha256sums-${{ matrix.target }}.txt
+          cd dist && sha256sum valenced-* valenced-desktop-* > sha256sums-${{ matrix.target }}.txt || shasum -a 256 valenced-* valenced-desktop-* > sha256sums-${{ matrix.target }}.txt
       - uses: softprops/action-gh-release@v2
         with:
           files: dist/*
