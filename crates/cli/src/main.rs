@@ -104,6 +104,11 @@ enum ThemeAction {
     Validate { path: PathBuf },
     Report { path: PathBuf },
     Css { path: PathBuf },
+    Preview {
+        path: PathBuf,
+        #[arg(long, default_value = "-")]
+        out: String,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -376,6 +381,19 @@ impl Plugin for {Crate} {{
                     .with_context(|| format!("read {}", path.display()))?;
                 let t = parse_theme(&json).with_context_string("invalid theme")?;
                 println!("{}", t.css_variables());
+                Ok(())
+            }
+            ThemeAction::Preview { path, out } => {
+                let json = std::fs::read_to_string(&path)
+                    .with_context(|| format!("read {}", path.display()))?;
+                let t = parse_theme(&json).with_context_string("invalid theme")?;
+                let html = t.preview_html();
+                if out == "-" {
+                    println!("{html}");
+                } else {
+                    std::fs::write(&out, &html).with_context(|| format!("write {out}"))?;
+                    println!("✓ preview {} ({} colors) → {out}", t.name, t.semantic_colors.len());
+                }
                 Ok(())
             }
         },

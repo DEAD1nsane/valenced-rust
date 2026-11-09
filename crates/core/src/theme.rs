@@ -110,6 +110,30 @@ impl Theme {
             "cssBytes": self.css_variables().len(),
         })
     }
+
+    /// Self-contained HTML preview grid (same colors as `css_variables`).
+    /// Used by `valenced theme preview` and the GPUI shell's web fallback.
+    pub fn preview_html(&self) -> String {
+        let mut cells: Vec<String> = self
+            .semantic_colors
+            .iter()
+            .map(|(k, v)| {
+                let c = v.first().map(|s| s.as_str()).unwrap_or("#000000");
+                format!(
+                    "<div class='cell'><div class='sw' style='background:{}'></div><code>{} {}</code></div>",
+                    c, k, c
+                )
+            })
+            .collect();
+        cells.sort();
+        format!(
+            "<!doctype html><html><head><meta charset=utf-8><title>{}</title><style>body{{font-family:system-ui;background:#111;color:#fff}} .grid{{display:grid;grid-template-columns:repeat(auto-fill,220px);gap:8px}} .cell{{border:1px solid #333;padding:6px;border-radius:8px}} .sw{{height:36px;border-radius:6px;margin-bottom:4px}} code{{font-size:11px;word-break:break-all}}</style></head><body><h1>{}</h1><p>{} colors · EF2538 Discord icon</p><div class=grid>{}</div></body></html>",
+            self.name,
+            self.name,
+            self.semantic_colors.len(),
+            cells.join("\n")
+        )
+    }
 }
 
 fn is_valid_color(s: &str) -> bool {
