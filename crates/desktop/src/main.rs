@@ -17,6 +17,9 @@ use std::path::PathBuf;
 
 use valenced_core::theme::parse_theme;
 
+#[cfg(feature = "gpui")]
+mod ui;
+
 trait StringResultExtDesktop<T> {
     fn with_context_string(self, ctx: impl Into<String>) -> Result<T>;
 }
@@ -70,10 +73,9 @@ fn main() -> Result<()> {
         Commands::Run => {
             #[cfg(feature = "gpui")]
             {
-                // GPUI entrypoint lives here when the feature is on.
-                // `gpui::Application` + `gpui::Window` + `ThemeView` are wired
-                // in `ui.rs` (added with the feature). Placeholder keeps CI green.
-                println!("GPUI shell (feature-gated). See docs/PHOENIX_NOTES.md for the Zed GPUI setup.");
+                let theme_name = std::env::var("VALENCED_THEME").unwrap_or_else(|_| "Valenced".into());
+                let msgs = vec![format!("Theme: {theme_name}"), "See docs/PHOENIX_NOTES.md".into()];
+                ui::run(theme_name, msgs, vec![]);
                 Ok(())
             }
             #[cfg(not(feature = "gpui"))]
