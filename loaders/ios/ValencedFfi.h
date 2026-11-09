@@ -11,6 +11,7 @@ char* valenced_version_satisfies(const char* version, const char* range);
 char* valenced_manifest_validate(const char* json);
 char* valenced_repo_parse(const char* url, const char* json);
 char* valenced_theme_validate(const char* json);
+char* valenced_resolve_install(const char* request_json, const char* repos_json, const char* installed_json, const char* sources_json);
 void  valenced_free_string(char* ptr);
 #ifdef __cplusplus
 }

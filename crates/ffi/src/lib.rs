@@ -134,6 +134,99 @@ pub unsafe extern "C" fn valenced_theme_validate(json_ptr: *const c_char) -> *mu
     }
 }
 
+/// Plan an install from JSON inputs. Inputs:
+/// - `requestJson`: `{"id": "...", "targets": {...}, "skipMissingOptionals": false}`
+/// - `reposJson`: `[{"url": "...", "index": {...}}]`
+/// - `installedJson`: `{"<id>": "1.0.0", ...}` (includes `valenced.api`/`discord`)
+/// - `sourcesJson`: `{"<id>": {"repo": ..., "hash": ..., "channel": ..., "held": ...}}`
+///
+/// Returns `{"ok":true,"value":{"actions":[…],"warnings":[…]}}`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn valenced_resolve_install(
+    request_ptr: *const c_char,
+    repos_ptr: *const c_char,
+    installed_ptr: *const c_char,
+    sources_ptr: *const c_char,
+) -> *mut c_char {
+    use std::collections::HashMap;
+    use valenced_core::manifest::PluginSource;
+    use valenced_core::resolver::{ResolveRequest, PlanTarget, resolve_install};
+    use valenced_core::repos::RepoIndex;
+
+    let request_s = unsafe { cstr_to_str(request_ptr) };
+    let repos_s = unsafe { cstr_to_str(repos_ptr) };
+    let installed_s = unsafe { cstr_to_str(installed_ptr) };
+    let sources_s = unsafe { cstr_to_str(sources_ptr) };
+    let (Some(req_s), Some(repos_s), Some(inst_s), Some(src_s)) =
+        (request_s.as_deref(), repos_s.as_deref(), installed_s.as_deref(), sources_s.as_deref())
+    else {
+        return err_out(-2, "null input");
+    };
+
+    let req_v: serde_json::Value = match serde_json::from_str(req_s) { Ok(v) => v, Err(e) => return err_out(-1, e.to_string()) };
+    let id = req_v.get("id").and_then(|x| x.as_str()).unwrap_or("").to_string();
+    if id.is_empty() {
+        return err_out(-1, "request.id missing");
+    }
+    let mut request = ResolveRequest::new(&id);
+    request.skip_missing_optionals = req_v.get("skipMissingOptionals").and_then(|x| x.as_bool()).unwrap_or(false);
+    if let Some(targets) = req_v.get("targets").and_then(|x| x.as_object()) {
+        for (tid, t) in targets {
+            request.targets.insert(tid.clone(), PlanTarget {
+                repo: t.get("repo").and_then(|x| x.as_str()).map(|s| s.to_string()),
+                version: t.get("version").and_then(|x| x.as_str()).map(|s| s.to_string()),
+                channel: t.get("channel").and_then(|x| x.as_str()).map(|s| s.to_string()),
+                compatible: t.get("compatible").and_then(|x| x.as_bool()).unwrap_or(false),
+            });
+        }
+    }
+
+    let repos_v: serde_json::Value = match serde_json::from_str(repos_s) { Ok(v) => v, Err(e) => return err_out(-1, e.to_string()) };
+    let mut repos: Vec<(String, RepoIndex)> = Vec::new();
+    if let Some(arr) = repos_v.as_array() {
+        for entry in arr {
+            let url = entry.get("url").and_then(|x| x.as_str()).unwrap_or("").to_string();
+            if let Some(index_v) = entry.get("index") {
+                if let Ok(index) = serde_json::from_value::<RepoIndex>(index_v.clone()) {
+                    repos.push((url, index));
+                }
+            }
+        }
+    }
+
+    let inst_v: serde_json::Value = match serde_json::from_str(inst_s) { Ok(v) => v, Err(e) => return err_out(-1, e.to_string()) };
+    let mut installed: HashMap<String, Version> = HashMap::new();
+    if let Some(obj) = inst_v.as_object() {
+        for (k, v) in obj {
+            if let Some(s) = v.as_str() {
+                let _ = Version::parse(s).map(|parsed| installed.insert(k.clone(), parsed));
+            }
+        }
+    }
+
+    let src_v: serde_json::Value = match serde_json::from_str(src_s) { Ok(v) => v, Err(e) => return err_out(-1, e.to_string()) };
+    let sources: HashMap<String, PluginSource> =
+        serde_json::from_value(src_v).unwrap_or_default();
+
+    match resolve_install(&request, &repos, &installed, &sources) {
+        Ok(plan) => {
+            let actions: Vec<_> = plan.actions.iter().map(|a| serde_json::json!({
+                "id": a.id,
+                "version": a.version.to_string(),
+                "url": a.url,
+                "sha256": a.sha256,
+                "size": a.size,
+                "repo": a.repo,
+                "channel": a.channel,
+                "hold": a.hold,
+                "replaces": a.replaces.as_ref().map(|v| v.to_string()),
+            })).collect();
+            ok_out(serde_json::json!({ "actions": actions, "warnings": plan.warnings }))
+        }
+        Err(e) => err_out(-1, e.0.to_string()),
+    }
+}
+
 /// The FFI ABI version, for loader startup checks.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn valenced_ffi_abi_version() -> i64 {
