@@ -28,10 +28,19 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: sudo apt-get update && sudo apt-get install -y pkg-config g++ libx11-dev libx11-xcb-dev libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxcb-keysyms1-dev libxcb-icccm4-dev libxcb-image0-dev libxcb-shm0-dev libxcb-util0-dev libxcb-randr0-dev libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev wayland-protocols libegl-dev libgl-dev libvulkan-dev libfontconfig-dev libfreetype-dev libasound2-dev libdbus-1-dev clang
       - run: cargo build --locked --release -p valenced-cli -p valenced-desktop --target ${{ matrix.target }} --features valenced-desktop/gpui
+      - name: Stage uniquely-named assets
+        shell: bash
+        run: |
+          mkdir -p dist
+          ext=""
+          if [ "${{ runner.os }}" = "Windows" ]; then ext=".exe"; fi
+          for bin in valenced valenced-desktop; do
+            src="target/${{ matrix.target }}/release/${bin}${ext}"
+            cp "$src" "dist/${bin}-${{ matrix.target }}${ext}"
+          done
+          sha256sum dist/* > dist/sha256sums-${{ matrix.target }}.txt || shasum -a 256 dist/* > dist/sha256sums-${{ matrix.target }}.txt
       - uses: softprops/action-gh-release@v2
         with:
-          files: |
-            target/${{ matrix.target }}/release/valenced*
-            target/${{ matrix.target }}/release/valenced-desktop*
+          files: dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
