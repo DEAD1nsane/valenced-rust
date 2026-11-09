@@ -33,9 +33,13 @@ index = {"format":1,"name":"e2e-repo","plugins":{
 ```sh
 cd /tmp/valenced-e2e/repo && python3 -m http.server 8765 &
 cargo run -p valenced-cli -- repo validate ./index.json --url http://127.0.0.1:8765/index.json
+cargo run -p valenced-cli -- repo refresh http://127.0.0.1:8765/index.json --data-dir /tmp/valenced-e2e/data
+cargo run -p valenced-cli -- repo list --data-dir /tmp/valenced-e2e/data
 cargo run -p valenced-cli -- repo install ./index.json com.example.e2e \
   --data-dir /tmp/valenced-e2e/data --repo-url http://127.0.0.1:8765/index.json
 cargo run -p valenced-cli -- plugin list --data-dir /tmp/valenced-e2e/data
+cargo run -p valenced-cli -- plugin start --data-dir /tmp/valenced-e2e/data
+cargo run -p valenced-cli -- theme preview ~/GitHub/discord-themes/Themes/DARK/"Azure Blue AMOLED.json" --out preview.html
 ```
 
 Expected:
