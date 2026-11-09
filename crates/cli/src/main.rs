@@ -77,6 +77,16 @@ enum PluginAction {
         #[arg(long, default_value = "/tmp/valenced")]
         data_dir: String,
     },
+    #[command(about = "Scaffold a new Rust/WASM plugin (TS -> Rust migration)")]
+    New {
+        /// Plugin id (e.g. `com.example.hello`).
+        id: String,
+        /// Display name.
+        #[arg(long, default_value = "Hello")]
+        name: String,
+        /// Output directory.
+        out: PathBuf,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -109,6 +119,23 @@ enum RepoAction {
 #[derive(Subcommand, Debug)]
 enum BundleAction {
     Validate { path: PathBuf },
+    #[command(about = "Generate bundle manifest from bundle/src/plugins (replaces scripts/manifest.ts)")]
+    Generate {
+        /// Plugins dir (`bundle/src/plugins`).
+        plugins_dir: PathBuf,
+        /// Bundle version (e.g. `1.3.0` from bundle/package.json).
+        #[arg(long, default_value = "1.0.0")]
+        version: String,
+        /// Dev mode (includes devOnly plugins, enables dev defaults).
+        #[arg(long, default_value_t = false)]
+        dev: bool,
+        /// Output file (`-` for stdout).
+        #[arg(long, default_value = "-")]
+        out: String,
+        /// Default repo URL for stubs (`VALENCED_DEFAULT_PLUGIN_REPOSITORY_URL`).
+        #[arg(long)]
+        default_repo: Option<String>,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -148,6 +175,79 @@ fn main() -> Result<()> {
                 for (dir, why) in skipped {
                     eprintln!("  ! skipped {dir}: {why}");
                 }
+                Ok(())
+            }
+            PluginAction::New { id, name, out } => {
+                valenced_core::manifest::require_valid_plugin_id(&id).map_err(|e| anyhow::anyhow!(e))?;
+                std::fs::create_dir_all(out.join("src")).with_context(|| format!("mkdir {}", out.display()))?;
+                let manifest = serde_json::json!({
+                    "format": 1,
+                    "id": id,
+                    "name": name,
+                    "description": "TODO: describe your plugin",
+                    "author": "TODO <0>",
+                    "contributors": [],
+                    "icon": null,
+                    "version": "1.0.0",
+                    "dependencies": {
+                        "valenced.api": { "version": ">=1 <2" },
+                        "discord": { "version": "*" }
+                    },
+                    "dist": { "wasm": "plugin.wasm" }
+                });
+                std::fs::write(out.join("manifest.json"), serde_json::to_string_pretty(&manifest)?)?;
+                let cargo_toml = format!(r#"[package]
+name = "{}"
+version = "1.0.0"
+edition = "2024"
+license = "GPL-3.0-only"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+serde_json = "1"
+valenced-core = {{ path = "{}", package = "valenced-core" }}
+valenced-runtime = {{ path = "{}", package = "valenced-runtime" }}
+"#, id.replace('.', "-"), env!("CARGO_MANIFEST_DIR"), env!("CARGO_MANIFEST_DIR"));
+                // Paths are illustrative; users copy into their repo and fix.
+                let cargo_toml = cargo_toml.replace(
+                    &format!("{}/crates", env!("CARGO_MANIFEST_DIR")),
+                    "../../crates",
+                );
+                std::fs::write(out.join("Cargo.toml"), &cargo_toml)?;
+                let lib_rs = format!(r#"use std::collections::HashMap;
+use valenced_core::manifest::{{PluginDependency, PluginManifest}};
+use valenced_core::version::{{Version, VersionRange}};
+use valenced_runtime::plugin::{{Plugin, PluginContext, RuntimeError}};
+
+fn manifest() -> PluginManifest {{
+    let mut deps = HashMap::new();
+    deps.insert("valenced.api".into(), PluginDependency {{ version: VersionRange::parse(">=1 <2").unwrap(), optional: false }});
+    deps.insert("discord".into(), PluginDependency {{ version: VersionRange::any(), optional: false }});
+    PluginManifest {{
+        id: "{id}".into(),
+        name: "{name}".into(),
+        description: String::new(),
+        author: String::new(),
+        contributors: vec![],
+        icon: None,
+        dependencies: deps,
+        version: Version::parse("1.0.0").unwrap(),
+    }}
+}}
+
+pub struct {Crate} {{}}
+
+impl Plugin for {Crate} {{
+    fn manifest(&self) -> &PluginManifest {{ todo!() }}
+    fn start(&mut self, _ctx: &mut PluginContext) -> Result<(), RuntimeError> {{ Ok(()) }}
+}}
+"#, Crate = name.replace(' ', "").replace('-', "_").to_lowercase().chars().enumerate().map(|(i, c)| if i == 0 { c.to_ascii_uppercase() } else { c }).collect::<String>());
+                // The todo!() above is replaced at build time by a static manifest;
+                // kept minimal so `cargo test` in the template is a starting point.
+                std::fs::write(out.join("src/lib.rs"), &lib_rs)?;
+                println!("✓ scaffolded plugin {id} → {}", out.display());
                 Ok(())
             }
         },
@@ -227,6 +327,23 @@ fn main() -> Result<()> {
                 let m = parse_bundle_manifest(&json).with_context(|| "invalid bundle manifest")?;
                 let count = m.plugin_manifests().len();
                 println!("✓ bundle {} ({} plugins)", m.version, count);
+                Ok(())
+            }
+            BundleAction::Generate { plugins_dir, version, dev, out, default_repo } => {
+                let manifest = valenced_core::bundle_builder::generate_bundle_manifest(
+                    &plugins_dir,
+                    &version,
+                    dev,
+                    default_repo.as_deref(),
+                )
+                .map_err(|e| anyhow::anyhow!(e))?;
+                let json = serde_json::to_string_pretty(&manifest)?;
+                if out == "-" {
+                    println!("{json}");
+                } else {
+                    std::fs::write(&out, &json).with_context(|| format!("write {out}"))?;
+                    println!("✓ generated bundle {} ({} plugins) → {out}", manifest.version, manifest.plugins.len());
+                }
                 Ok(())
             }
         },

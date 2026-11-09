@@ -10,6 +10,7 @@
 //! - [`fs_util`] ← `core/Files.kt`
 //! - [`theme`] ← Themes API validator (for `discord-themes`)
 
+pub mod bundle_builder;
 pub mod fs_util;
 pub mod install;
 pub mod manifest;
