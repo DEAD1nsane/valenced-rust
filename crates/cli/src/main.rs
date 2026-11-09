@@ -82,6 +82,11 @@ enum PluginAction {
         #[arg(long, default_value = "/tmp/valenced")]
         data_dir: String,
     },
+    #[command(about = "Load installed plugins and run their lifecycles (dry-run)")]
+    Start {
+        #[arg(long, default_value = "/tmp/valenced")]
+        data_dir: String,
+    },
     #[command(about = "Scaffold a new Rust/WASM plugin (TS -> Rust migration)")]
     New {
         /// Plugin id (e.g. `com.example.hello`).
@@ -216,6 +221,40 @@ fn main() -> Result<()> {
                 for (dir, why) in skipped {
                     eprintln!("  ! skipped {dir}: {why}");
                 }
+                Ok(())
+            }
+            PluginAction::Start { data_dir } => {
+                use std::collections::HashMap;
+                use std::sync::Arc;
+                use valenced_runtime::discord_api::DiscordApi;
+                use valenced_runtime::filesystem_host::FileSystemHost;
+                let paths = valenced_core::paths::PluginPaths::new(&data_dir);
+                let mut reg = valenced_runtime::Registry::new();
+                let (loaded, skipped) = reg.load_from_dist(&paths);
+                if loaded.is_empty() {
+                    println!("(no plugins installed under {})", paths.dist().display());
+                    return Ok(());
+                }
+                for (dir, why) in skipped {
+                    eprintln!("  ! skipped {dir}: {why}");
+                }
+                let slot = valenced_core::states::read_active_slot(&paths.states());
+                let host = FileSystemHost::from_data_dir(paths.clone(), &slot);
+                let unscoped = valenced_runtime::plugin::UnscopedApi::new(Arc::new(DiscordApi::new(Arc::new(host))));
+                let host_versions: HashMap<String, Version> = [
+                    ("valenced.api".into(), Version::parse("1.0.0").unwrap()),
+                    ("discord".into(), Version::parse("350.2").unwrap()),
+                ]
+                .into_iter()
+                .collect();
+                let order = reg.topo_order(&host_versions).map_err(|e| anyhow::anyhow!("{e}"))?;
+                println!("✓ load order: {}", order.join(" < "));
+                reg.start_all(unscoped.clone(), &host_versions)
+                    .map_err(|e| anyhow::anyhow!("{e}"))?;
+                println!("✓ started {} plugin(s)", loaded.len());
+                // Keep stop wiring exercised without leaving the process hanging.
+                reg.stop_all(unscoped);
+                println!("✓ stopped");
                 Ok(())
             }
             PluginAction::New { id, name, out } => {
