@@ -131,6 +131,11 @@ enum RepoAction {
         #[arg(long, default_value = "/tmp/valenced")]
         data_dir: String,
     },
+    #[command(about = "List cached repo indexes (repos/index-*.json)")]
+    List {
+        #[arg(long, default_value = "/tmp/valenced")]
+        data_dir: String,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -456,6 +461,34 @@ impl Plugin for {Crate} {{
                 println!("✓ refreshed '{}' ({} plugins, {} warnings) → {}", index.name, index.plugins.len(), warnings.len(), cache.display());
                 for w in warnings {
                     eprintln!("  ! {w}");
+                }
+                Ok(())
+            }
+            RepoAction::List { data_dir } => {
+                let paths = valenced_core::paths::PluginPaths::new(&data_dir);
+                let repos = paths.repos();
+                let entries = std::fs::read_dir(&repos)
+                    .map(|rd| rd.flatten().collect::<Vec<_>>())
+                    .unwrap_or_default();
+                let mut found = 0;
+                for entry in entries {
+                    let path = entry.path();
+                    if path.extension().and_then(|e| e.to_str()) != Some("json") {
+                        continue;
+                    }
+                    let name = path.file_name().and_then(|s| s.to_str()).unwrap_or("?");
+                    if !name.starts_with("index-") {
+                        continue;
+                    }
+                    if let Ok(json) = std::fs::read_to_string(&path) {
+                        if let Ok((index, warnings)) = parse_repo_index(&json, name) {
+                            println!("✓ {} — {} ({} plugins, {} warnings)", name, index.name, index.plugins.len(), warnings.len());
+                            found += 1;
+                        }
+                    }
+                }
+                if found == 0 {
+                    println!("(no cached indexes under {})", repos.display());
                 }
                 Ok(())
             }
