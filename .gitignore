@@ -1,7 +1,7 @@
 # Rust
 /target/
 **/target/
-Cargo.lock
+# Cargo.lock is committed for reproducible releases (pins libc for GPUI)
 # Machine AGENTS.md (symlink to ~/.git-template, same as discord-themes)
 AGENTS.md
 # Editors
