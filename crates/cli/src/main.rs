@@ -171,6 +171,11 @@ enum VersionAction {
 #[derive(Subcommand, Debug)]
 enum FfiAction {
     SelfTest,
+    #[command(about = "Verify FileSystemHost wiring (modules/assets/storage)")]
+    HostCheck {
+        #[arg(long, default_value = "/tmp/valenced")]
+        data_dir: String,
+    },
 }
 
 fn main() -> Result<()> {
@@ -494,6 +499,21 @@ impl Plugin for {Crate} {{
                 let json = r#"{"format":1,"id":"com.example.selftest","name":"SelfTest","version":"1.0.0","dependencies":{"valenced.api":{},"discord":{}}}"#;
                 parse_external_manifest(json).with_context_string("manifest")?;
                 println!("✓ ffi self-test passed (core + runtime linked)");
+                Ok(())
+            }
+            FfiAction::HostCheck { data_dir } => {
+                use std::sync::Arc;
+                use valenced_runtime::discord_api::HostBridge;
+                use valenced_runtime::filesystem_host::FileSystemHost;
+                use valenced_runtime::discord_api::DiscordApi;
+                let paths = valenced_core::paths::PluginPaths::new(&data_dir);
+                paths.ensure_layout()?;
+                let host = FileSystemHost::from_data_dir(paths.clone(), "default");
+                let assets = host.asset_names();
+                let storage = host.storage_path("com.example.selftest");
+                let disc = DiscordApi::new(Arc::new(host));
+                assert!(disc.module("missing").is_none());
+                println!("✓ host {:#?} ({} assets, storage={storage})", paths.root, assets.len());
                 Ok(())
             }
         },
