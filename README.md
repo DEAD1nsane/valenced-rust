@@ -6,6 +6,16 @@
 
 > **Download:** [v0.2.0 release](https://github.com/DEAD1nsane/valenced-rust/releases/tag/v0.2.0) — `valenced-<target>[.exe]` and `valenced-desktop-<target>[.exe]` for Linux (x86_64), macOS (x86_64 + aarch64), Windows (x86_64), plus `sha256sums-<target>.txt`. Mobile `libvalenced_ffi` artifacts follow with the NDK/Xcode builds — see `docs/MOBILE_BUILDS.md`.
 
+### Verified install (Linux x86_64)
+
+```sh
+curl -LO https://github.com/DEAD1nsane/valenced-rust/releases/download/v0.2.0/valenced-x86_64-unknown-linux-gnu
+curl -LO https://github.com/DEAD1nsane/valenced-rust/releases/download/v0.2.0/sha256sums-x86_64-unknown-linux-gnu.txt
+grep valenced-x86_64-unknown-linux-gnu sha256sums-x86_64-unknown-linux-gnu.txt | sha256sum -c -
+chmod +x valenced-x86_64-unknown-linux-gnu
+./valenced-x86_64-unknown-linux-gnu ffi self-test
+```
+
 A **pure-Rust rebuild** of [Valenced](https://github.com/Valenced/valenced)
 in the spirit of Discord's [Project Phoenix](https://youtu.be/y1PDr15raAA):
 Discord is dropping Electron + React Native for a Rust client with GPUI,
