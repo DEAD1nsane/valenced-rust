@@ -498,11 +498,11 @@ impl Plugin for {Crate} {{
                     if !name.starts_with("index-") {
                         continue;
                     }
-                    if let Ok(json) = std::fs::read_to_string(&path) {
-                        if let Ok((index, warnings)) = parse_repo_index(&json, name) {
-                            println!("✓ {} — {} ({} plugins, {} warnings)", name, index.name, index.plugins.len(), warnings.len());
-                            found += 1;
-                        }
+                    if let Ok(json) = std::fs::read_to_string(&path)
+                        && let Ok((index, warnings)) = parse_repo_index(&json, name)
+                    {
+                        println!("✓ {} — {} ({} plugins, {} warnings)", name, index.name, index.plugins.len(), warnings.len());
+                        found += 1;
                     }
                 }
                 if found == 0 {
