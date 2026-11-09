@@ -17,6 +17,9 @@ clap = { version = "4", features = ["derive"] }
 sha2 = "0.10"
 zip = { version = "2", default-features = false, features = ["deflate"] }
 ureq = { version = "2.12", default-features = false, features = ["tls"] }
+# libc 0.2.190+ removed Linux ENOATTR (used by xattr 0.2 via zed-async-tar);
+# GPUI 0.2 needs =0.2.189 until upstream fixes. See docs/PHOENIX_NOTES.md.
+libc = "=0.2.189"
 
 [workspace.package]
 version = "0.2.0"

@@ -73,3 +73,13 @@ Discord considers upstreaming GPUI patches. For Valenced, theme preview
 (`Theme::css_variables`) and the hook-registry (`Patcher`) are the two
 surfaces most likely to generalize as a `gpui-valenced` example crate
 without forking GPUI — see `docs/ARCHITECTURE.md` for the boundary.
+
+### Linux dependency note (from Grok Bot crosswalk `v4osw5`, 2026-11-09)
+
+`--features gpui` on Linux glibc needs (Debian/Ubuntu `-dev` packages):
+`pkg-config g++ libx11-dev libx11-xcb-dev libxcb*-dev libxkbcommon-dev
+libxkbcommon-x11-dev libwayland-dev wayland-protocols libegl-dev libgl-dev
+libvulkan-dev libfontconfig-dev libfreetype-dev libasound2-dev libdbus-1-dev
+clang libclang-dev` (bindgen). And `libc` must be pinned `=0.2.189` (workspace
+`Cargo.toml`) until `xattr`/`zed-async-tar` fixes `ENOATTR` — `libc 0.2.190+`
+removed the alias. `Cargo.lock` should be committed for release reproducibility.
