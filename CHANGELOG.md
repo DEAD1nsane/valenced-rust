@@ -39,6 +39,14 @@ First Pure Rust rebuild of Valenced (Phoenix split: thin native loaders + shared
 - `README`, `docs/ARCHITECTURE`/`MIGRATING_FROM_TS`/`FFI_GUIDE`/`PHOENIX_NOTES`/`MOBILE_BUILDS`/`E2E_INSTALL`
 - GitHub Actions: `test` (workspace + js-compat + wasm + clippy `-D warnings`) + `ios` check
 
-## v0.2.0 — unreleased
+## v0.2.0 — 2026-11-09
 
-- `valenced theme preview` (HTML grid), `ffi host-check`, `repo refresh/list`, `plugin start`, `bundle types`, FFI `resolve_install`, iOS/Android CI coverage, `#EF2538` branding + docs previews.
+Release engineering + the first downloadable binaries.
+
+- `valenced theme preview` (HTML grid), `ffi host-check`, `repo refresh/list`, `plugin start`, `bundle types`, FFI `resolve_install`
+- `#EF2538` branding (README, logo, license shield) + docs theme previews
+- Release pipeline: per-target assets (`valenced-<target>[.exe]`, `valenced-desktop-<target>[.exe]`) + `sha256sums-<target>.txt` for Linux x86_64, macOS x86_64/aarch64, Windows x86_64
+- `libc` pinned `0.2.189` in committed `Cargo.lock` (GPUI/`xattr` `ENOATTR` fix), `--locked` release builds
+- CI: workspace + js-compat + wasm + clippy `-D warnings`, iOS check
+
+Install: download the asset for your platform from [Releases](https://github.com/DEAD1nsane/valenced-rust/releases/tag/v0.2.0), verify against `sha256sums-<target>.txt`, `chmod +x` on Linux/macOS.
