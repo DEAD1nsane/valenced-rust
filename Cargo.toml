@@ -22,3 +22,10 @@ ureq = { version = "2.12", default-features = false, features = ["tls"] }
 version = "0.2.0"
 edition = "2024"
 license = "GPL-3.0-only"
+
+[workspace.metadata.dist]
+# cargo-dist: cross-platform installers for the CLI + desktop.
+cargo-dist-version = "0.24"
+installers = ["shell", "powershell"]
+targets = ["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-pc-windows-msvc"]
+publish = "github"
